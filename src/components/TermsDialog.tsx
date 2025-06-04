@@ -23,12 +23,12 @@ const TermsDialog: React.FC<TermsDialogProps> = ({ isOpen, onOpenChange, onAgree
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { onOpenChange(open); if(!open) setAgreed(false); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { onOpenChange(open); if (!open) setAgreed(false); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Terms and Conditions</DialogTitle>
-          <DialogDescription>
-            Please read and agree to the terms and conditions before submitting your post.
+          <DialogDescription asChild>
+            <span>Please read and agree to the terms and conditions before submitting your post.</span>
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4 max-h-60 overflow-y-auto text-sm">
@@ -38,7 +38,7 @@ const TermsDialog: React.FC<TermsDialogProps> = ({ isOpen, onOpenChange, onAgree
           <p><strong>4. Data Usage:</strong> Your provided information (name, phone, email) will be used for account creation and communication related to Hẻm Story. We respect your privacy.</p>
           <p><strong>5. Moderation:</strong> Hẻm Story reserves the right to moderate or remove content that violates these terms or community guidelines.</p>
         </div>
-        <div className="flex items-center space-x-2 py-2">
+        <div className="flex items-center space-x-2 mb-4">
           <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked as boolean)} />
           <Label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
             I have read and agree to the terms and conditions.

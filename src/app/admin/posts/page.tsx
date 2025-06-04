@@ -1,170 +1,359 @@
-
 "use client";
 
-import { useState, useMemo } from 'react';
-import { mockPosts, mockUsers } from '@/lib/mock-data';
-import type { Post } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Search, Eye, EyeOff, Edit, Trash2, Star, ShieldAlert } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Pencil, Trash2, Eye, EyeOff, Star } from 'lucide-react';
 
-export default function AdminPostsPage() {
+interface Post {
+  _id: string;
+  postId: string;
+  description: string;
+  images: { url: string; public_id: string }[];
+  likes: number;
+  shares: number;
+  commentsCount: number;
+  isFeatured: boolean;
+  isHidden: boolean;
+  userId: {
+    _id: string; // Add _id for user
+    name: string;
+    phoneNumber: string;
+    email: string;
+  };
+  createdAt: string;
+}
+
+interface AllPostsData {
+  posts: Post[];
+  currentPage: number;
+  totalPages: number;
+  totalPosts: number;
+}
+
+export default function AdminManagePostsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [posts, setPosts] = useState<Post[]>(mockPosts); // Manage posts state locally for demo
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
 
-  const filteredPosts = useMemo(() => {
-    return posts.filter(post =>
-      post.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.description.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [posts, searchTerm]);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [filterBy, setFilterBy] = useState(searchParams.get('filterBy') || '');
+  const [sortOrder, setSortOrder] = useState(searchParams.get('sortOrder') || 'desc');
+  const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editIsFeatured, setEditIsFeatured] = useState(false);
+  const [editIsHidden, setEditIsHidden] = useState(false);
 
-  const handleToggleFeature = (postId: string) => {
-    setPosts(prevPosts => prevPosts.map(p => p.id === postId ? { ...p, isFeatured: !p.isFeatured } : p));
-    toast({ title: "Post Updated", description: `Post ${postId} feature status changed.` });
-  };
-
-  const handleToggleHidden = (postId: string) => {
-    setPosts(prevPosts => prevPosts.map(p => p.id === postId ? { ...p, isHidden: !p.isHidden } : p));
-     toast({ title: "Post Updated", description: `Post ${postId} visibility changed.` });
-  };
-
-  const handleDeletePost = (postId: string) => {
-    setPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
-    toast({ title: "Post Deleted", description: `Post ${postId} has been deleted.`, variant: "destructive" });
-  };
-  
-  const handleSelectPost = (postId: string, checked: boolean) => {
-    setSelectedPostIds(prev => {
-      const newSet = new Set(prev);
-      if (checked) newSet.add(postId);
-      else newSet.delete(postId);
-      return newSet;
-    });
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedPostIds(new Set(filteredPosts.map(p => p.id)));
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      toast({
+        title: 'Access Denied',
+        description: 'You do not have administrative privileges.',
+        variant: 'destructive',
+      });
+      router.push('/admin/login');
     } else {
-      setSelectedPostIds(new Set());
+      setIsAdmin(true);
+    }
+  }, [router, toast]);
+
+  const buildQueryString = () => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (filterBy) params.set('filterBy', filterBy);
+    if (sortOrder) params.set('sortOrder', sortOrder);
+    params.set('page', page.toString());
+    return params.toString();
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      const queryString = buildQueryString();
+      router.push(`/admin/posts?${queryString}`, { scroll: false });
+    }
+  }, [searchQuery, filterBy, sortOrder, page, isAdmin]);
+
+  const { data, isLoading, error } = useQuery<AllPostsData, Error>({
+    queryKey: ['adminPosts', searchQuery, filterBy, sortOrder, page],
+    queryFn: async () => {
+      const queryString = buildQueryString();
+      const res = await fetch(`/api/admin/posts?${queryString}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch posts');
+      }
+      return res.json();
+    },
+    enabled: isAdmin,
+  });
+
+  const updatePostMutation = useMutation({
+    mutationFn: async (updatedPost: Partial<Post>) => {
+      const res = await fetch(`/api/admin/posts/${updatedPost._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(updatedPost),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update post');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['adminPosts'] });
+      toast({
+        title: 'Success',
+        description: data.message || 'Post updated successfully',
+        variant: 'default',
+      });
+      setIsEditDialogOpen(false);
+      setSelectedPost(null);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const res = await fetch(`/api/admin/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to delete post');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['adminPosts'] });
+      toast({
+        title: 'Success',
+        description: data.message || 'Post deleted successfully',
+        variant: 'default',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= (data?.totalPages || 1)) {
+      setPage(newPage);
     }
   };
-  
-  const getUserName = (userId?: string) => mockUsers.find(u => u.id === userId)?.name || 'Guest';
 
+  const handleEditClick = (post: Post) => {
+    setSelectedPost(post);
+    setEditDescription(post.description);
+    setEditIsFeatured(post.isFeatured);
+    setEditIsHidden(post.isHidden);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = () => {
+    if (selectedPost) {
+      updatePostMutation.mutate({
+        _id: selectedPost._id,
+        description: editDescription,
+        isFeatured: editIsFeatured,
+        isHidden: editIsHidden,
+      });
+    }
+  };
+
+  const handleDeleteClick = (postId: string) => {
+    if (window.confirm('Are you sure you want to delete this post?')) {
+      deletePostMutation.mutate(postId);
+    }
+  };
+
+  if (!isAdmin) {
+    return <div className="flex items-center justify-center min-h-screen">Checking access...</div>;
+  }
+
+  if (isLoading) {
+    return <div className="container mx-auto p-4 text-center">Loading posts...</div>;
+  }
+
+  if (error) {
+    return <div className="container mx-auto p-4 text-center text-red-500">Error: {error.message}</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-headline text-primary">Manage Posts</h1>
-      <div className="flex justify-between items-center">
-        <div className="relative w-full max-w-sm">
-          <Input
-            type="text"
-            placeholder="Search posts by ID, user, or description..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        </div>
-        {/* Add bulk actions button if needed */}
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold text-center mb-8">Manage Posts</h1>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <Input
+          placeholder="Search by user name or phone number..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="md:flex-1"
+        />
+        <Select value={filterBy} onValueChange={setFilterBy}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter By" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">None</SelectItem>
+            <SelectItem value="createdAt">Time Posted</SelectItem>
+            <SelectItem value="likes">Likes</SelectItem>
+            <SelectItem value="shares">Shares</SelectItem>
+            <SelectItem value="commentsCount">Comments</SelectItem>
+            <SelectItem value="isFeatured">Featured</SelectItem>
+            <SelectItem value="isHidden">Hidden</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortOrder} onValueChange={setSortOrder}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort Order" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="desc">Descending</SelectItem>
+            <SelectItem value="asc">Ascending</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <div className="rounded-md border shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40px]">
-                 <Checkbox
-                    checked={selectedPostIds.size > 0 && selectedPostIds.size === filteredPosts.length}
-                    onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {data?.posts.map((post) => (
+          <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg">
+            <CardHeader>
+              <CardTitle>{post.description.substring(0, 50)}...</CardTitle>
+              <CardDescription>
+                By {post.userId?.name || 'Anonymous'} ({post.userId?.phoneNumber})
+                <br />
+                Post ID: {post.postId} - {new Date(post.createdAt).toLocaleDateString()}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {post.images && post.images.length > 0 && (
+                <div className="relative w-full h-48 mb-4 rounded-md overflow-hidden">
+                  <Image
+                    src={post.images[0].url}
+                    alt={post.description}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
-              </TableHead>
-              <TableHead>Post ID / User</TableHead>
-              <TableHead className="hidden md:table-cell">Description</TableHead>
-              <TableHead className="hidden lg:table-cell">Created At</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredPosts.map((post) => (
-              <TableRow key={post.id} data-state={selectedPostIds.has(post.id) ? "selected" : ""}>
-                <TableCell>
-                   <Checkbox
-                    checked={selectedPostIds.has(post.id)}
-                    onCheckedChange={(checked) => handleSelectPost(post.id, checked as boolean)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium">{post.id}</div>
-                  <div className="text-xs text-muted-foreground">{post.userName} ({post.userPhone})</div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell max-w-xs truncate">
-                  {post.description}
-                </TableCell>
-                <TableCell className="hidden lg:table-cell">{formatDate(post.createdAt, 'PP p')}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col gap-1">
-                    {post.isFeatured && <Badge variant="default" className="bg-accent text-accent-foreground hover:bg-accent/80 text-xs">Featured</Badge>}
-                    {post.isHidden && <Badge variant="secondary" className="text-xs">Hidden</Badge>}
-                    {post.isFlagged && <Badge variant="destructive" className="text-xs">Flagged</Badge>}
-                    {!(post.isFeatured || post.isHidden || post.isFlagged) && <Badge variant="outline" className="text-xs">Normal</Badge>}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/posts/${post.id}/edit`}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleFeature(post.id)}>
-                        <Star className="mr-2 h-4 w-4" /> {post.isFeatured ? 'Unfeature' : 'Feature'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleHidden(post.id)}>
-                        {post.isHidden ? <Eye className="mr-2 h-4 w-4" /> : <EyeOff className="mr-2 h-4 w-4" />}
-                        {post.isHidden ? 'Unhide' : 'Hide'}
-                      </DropdownMenuItem>
-                       {post.isFlagged && (
-                        <DropdownMenuItem onClick={() => alert(`Reviewing flagged post: ${post.id}. Keywords: ${post.flaggedKeywords?.join(', ')}`)}>
-                            <ShieldAlert className="mr-2 h-4 w-4" /> Review Flag
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => handleDeletePost(post.id)} className="text-destructive focus:text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-             {filteredPosts.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  No posts found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                </div>
+              )}
+              <p className="text-sm text-gray-600 mb-2">Likes: {post.likes}, Shares: {post.shares}, Comments: {post.commentsCount}</p>
+              <p className="text-sm text-gray-600 mb-2">Featured: {post.isFeatured ? 'Yes' : 'No'}, Hidden: {post.isHidden ? 'Yes' : 'No'}</p>
+            </CardContent>
+            <CardFooter className="flex justify-end space-x-2">
+              <Button variant="outline" size="icon" onClick={() => handleEditClick(post)}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(post._id)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+              <Link href={`/posts/${post._id}`} target="_blank">
+                <Button variant="outline" size="icon"><Eye className="w-4 h-4" /></Button>
+              </Link>
+            </CardFooter>
+          </Card>
+        ))}
       </div>
+
+      <div className="flex justify-center items-center space-x-4">
+        <Button
+          onClick={() => handlePageChange(page - 1)}
+          disabled={page <= 1}
+          variant="outline"
+        >
+          Previous
+        </Button>
+        <span className="text-sm">Page {data?.currentPage} of {data?.totalPages}</span>
+        <Button
+          onClick={() => handlePageChange(page + 1)}
+          disabled={page >= (data?.totalPages || 1)}
+          variant="outline"
+        >
+          Next
+        </Button>
+      </div>
+
+      {/* Edit Post Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Post</DialogTitle>
+            <DialogDescription>
+              Make changes to the post here. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="editDescription" className="text-right">Description</label>
+              <Textarea
+                id="editDescription"
+                value={editDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditDescription(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isFeatured"
+                checked={editIsFeatured}
+                onCheckedChange={(checked) => setEditIsFeatured(!!checked)}
+              />
+              <label htmlFor="isFeatured" className="text-sm font-medium leading-none">Feature Post</label>
+              <Star className="w-4 h-4 text-yellow-500" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isHidden"
+                checked={editIsHidden}
+                onCheckedChange={(checked) => setEditIsHidden(!!checked)}
+              />
+              <label htmlFor="isHidden" className="text-sm font-medium leading-none">Hide Post</label>
+              {editIsHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={handleEditSubmit} disabled={updatePostMutation.isPending}>
+              {updatePostMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
