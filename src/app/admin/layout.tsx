@@ -1,9 +1,52 @@
 
+"use client"; // Ensure this is a Client Component for hooks
+
+import React from 'react'; // Import React
 import AdminSidebar from '@/components/AdminSidebar';
 import SiteHeader from '@/components/SiteHeader';
 import Footer from '@/components/Footer';
-import { AuthProvider, useAuth } from '@/components/providers/AuthProvider'; // Ensure useAuth is available
-import AdminAuthGuard from './AdminAuthGuard';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useRouter } from 'next/navigation'; // Correct import for useRouter
+import { Skeleton } from '@/components/ui/skeleton'; // For loading state
+
+// Component to handle auth guard for admin pages
+function AdminAuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const router = useRouter(); // Correctly use useRouter
+
+  React.useEffect(() => {
+    if (!isLoading) {
+      if (!user || !user.isAdmin) {
+        console.log("AdminAuthGuard: User not admin or not logged in, redirecting.");
+        router.push('/auth/login?redirect=/admin/dashboard');
+      }
+    }
+  }, [user, isLoading, router]);
+  
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 justify-center items-center h-full p-8">
+        <div className="w-full max-w-md space-y-4">
+            <Skeleton className="h-12 w-3/4" />
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !user.isAdmin) {
+     // This state should be brief due to the useEffect redirect
+    return (
+      <div className="flex flex-1 justify-center items-center h-full p-8">
+        <p className="text-xl text-destructive">Truy cập bị từ chối. Đang chuyển hướng đến trang đăng nhập...</p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 
 export default function AdminLayout({
@@ -26,36 +69,4 @@ export default function AdminLayout({
       {/* <Footer /> */}
     </div>
   );
-}
-
-// Component to handle auth guard for admin pages
-function AdminAuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
-  const router = React.useRef<any>(null); // Using React.useRef to avoid Next.js import error in this context
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined' && !router.current) {
-      // Dynamically import useRouter only on the client side
-      import('next/navigation').then(mod => {
-        router.current = mod.useRouter();
-
-        if (!isLoading && (!user || !user.isAdmin)) {
-          router.current.push('/auth/login?redirect=/admin/dashboard');
-        }
-      });
-    } else if (router.current && !isLoading && (!user || !user.isAdmin)) {
-      router.current.push('/auth/login?redirect=/admin/dashboard');
-    }
-  }, [user, isLoading]);
-  
-
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-full"><p>Loading admin area...</p></div>;
-  }
-
-  if (!user || !user.isAdmin) {
-    return <div className="flex justify-center items-center h-full"><p>Access Denied. Redirecting to login...</p></div>;
-  }
-
-  return <>{children}</>;
 }

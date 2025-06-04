@@ -30,23 +30,23 @@ export default function EditPostPage() {
   useEffect(() => {
     if (!authLoading && !user) {
       toast({
-        title: "Login Required",
-        description: "Please log in to edit posts.",
+        title: "Đăng nhập yêu cầu",
+        description: "Vui lòng đăng nhập để chỉnh sửa bài đăng.",
         variant: "destructive"
       });
-      router.push('/auth/login?redirect=/posts/' + postId + '/edit');
+      router.push(`/auth/login?redirect=/posts/${postId}/edit`);
     } else if (!authLoading && user && post === null) { 
        toast({
-        title: "Post Not Found",
-        description: "The post you are trying to edit does not exist.",
+        title: "Không tìm thấy bài đăng",
+        description: "Bài đăng bạn đang cố gắng chỉnh sửa không tồn tại.",
         variant: "destructive"
       });
        router.push('/posts');
     } else if (!authLoading && user && post && post.userId && user.id !== post.userId && !user.isAdmin) {
-        toast({ title: "Access Denied", description: "You are not authorized to edit this post.", variant: "destructive"});
+        toast({ title: "Truy cập bị từ chối", description: "Bạn không có quyền chỉnh sửa bài đăng này.", variant: "destructive"});
         router.push(`/posts/${postId}`); // Redirect to post view page or home
     } else if (!authLoading && user && post && !post.userId && !user.isAdmin) { // Post by guest, non-admin cannot edit
-       toast({ title: "Access Denied", description: "You are not authorized to edit this guest post.", variant: "destructive"});
+       toast({ title: "Truy cập bị từ chối", description: "Bạn không có quyền chỉnh sửa bài đăng của khách này.", variant: "destructive"});
        router.push(`/posts/${postId}`);
     }
   }, [authLoading, user, post, router, postId, toast]);
@@ -70,7 +70,7 @@ export default function EditPostPage() {
      // This state should be brief due to the useEffect redirect
      return (
       <div className="container mx-auto py-8 text-center">
-        <p className="text-xl mb-4">Redirecting to login...</p>
+        <p className="text-xl mb-4">Đang chuyển hướng đến trang đăng nhập...</p>
       </div>
     );
   }
@@ -79,7 +79,7 @@ export default function EditPostPage() {
     // This state should be brief due to the useEffect redirect
     return (
       <div className="container mx-auto py-8 text-center">
-        <p className="text-xl">Post not found. Redirecting...</p>
+        <p className="text-xl">Không tìm thấy bài đăng. Đang chuyển hướng...</p>
       </div>
     );
   }
@@ -93,8 +93,8 @@ export default function EditPostPage() {
   if (!canEdit) {
      return (
       <div className="container mx-auto py-8 text-center">
-        <p className="text-xl text-destructive">You are not authorized to edit this post.</p>
-        <Button asChild><Link href={`/posts/${postId}`}>Back to Post</Link></Button>
+        <p className="text-xl text-destructive">Bạn không có quyền chỉnh sửa bài đăng này.</p>
+        <Button asChild><Link href={`/posts/${postId}`}>Quay lại bài đăng</Link></Button>
       </div>
     );
   }
