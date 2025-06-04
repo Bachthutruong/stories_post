@@ -80,7 +80,9 @@ export interface AppStats {
   totalShares: number;
   totalComments: number;
   totalLikes: number;
+  totalReports?: number; // Added for potential dashboard use
+  activeLotteryPrograms?: number; // Added
 }
 
 // Mock user for auth context
-export type AuthenticatedUser = Pick<User, 'id' | 'name' | 'phone' | '
+export type AuthenticatedUser = Pick<User, 'id' | 'name' | 'phone' | 'isAdmin'> | null;

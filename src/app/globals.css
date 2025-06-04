@@ -4,52 +4,52 @@
 
 @layer base {
   :root {
-    --background: 60 56% 91%; /* Light Beige #F5F5DC */
-    --foreground: 20 14.3% 15.1%; /* Darker brown for better contrast on beige */
+    --background: 210 40% 98%; /* Very Light Blue-Gray */
+    --foreground: 210 20% 25%; /* Dark Slate Blue */
 
-    --card: 60 50% 95%; /* Slightly lighter beige for cards */
-    --card-foreground: 20 14.3% 15.1%;
+    --card: 210 30% 96%; /* Light Blue-Gray */
+    --card-foreground: 210 20% 25%;
 
-    --popover: 60 50% 95%;
-    --popover-foreground: 20 14.3% 15.1%;
+    --popover: 210 30% 96%;
+    --popover-foreground: 210 20% 25%;
 
-    --primary: 39 100% 50%; /* Orange #FFA500 */
-    --primary-foreground: 0 0% 100%; /* White text on orange for good contrast */
+    --primary: 205 65% 50%; /* Steel Blue */
+    --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 51 100% 70%; /* Lighter Yellow, derived from #FFD700 */
-    --secondary-foreground: 20 14.3% 15.1%; /* Dark text on lighter yellow */
+    --secondary: 190 50% 75%; /* Soft Cyan-Blue */
+    --secondary-foreground: 210 20% 25%; /* Dark Slate Blue */
 
-    --muted: 60 40% 88%; /* Muted version of beige */
-    --muted-foreground: 60 25% 50.1%; /* Muted text */
+    --muted: 210 30% 90%; /* Muted Blue-Gray */
+    --muted-foreground: 210 20% 45%; /* Muted Slate Blue */
 
-    --accent: 51 100% 50%; /* Yellow #FFD700 */
-    --accent-foreground: 20 14.3% 10.1%; /* Dark text on yellow */
+    --accent: 45 100% 60%; /* Golden Yellow */
+    --accent-foreground: 30 10% 15%; /* Dark Brown for contrast on Yellow */
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 70% 55%; /* Slightly softer red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 60 30% 80%; /* Border color related to beige */
-    --input: 60 30% 85%; /* Input background */
-    --ring: 39 100% 50%; /* Ring color (Orange for focus) */
+    --border: 210 25% 85%;
+    --input: 210 25% 92%;
+    --ring: 205 65% 55%; /* Primary focus ring */
 
     --radius: 0.5rem;
 
-    /* Sidebar specific colors, can be adjusted or inherit from main theme */
-    --sidebar-background: 60 60% 85%; /* A slightly darker/different beige for sidebar */
-    --sidebar-foreground: 20 14.3% 15.1%;
-    --sidebar-primary: var(--primary); /* Use main primary */
-    --sidebar-primary-foreground: var(--primary-foreground); /* Use main primary foreground */
-    --sidebar-accent: var(--accent); /* Use main accent */
-    --sidebar-accent-foreground: var(--accent-foreground); /* Use main accent foreground */
-    --sidebar-border: 60 30% 75%;
-    --sidebar-ring: var(--ring); /* Use main ring */
+    /* Sidebar specific colors */
+    --sidebar-background: 210 25% 92%; /* Slightly darker blue-gray for sidebar */
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: 210 20% 80%;
+    --sidebar-ring: var(--ring);
 
      /* Chart colors */
-    --chart-1: 39 100% 60%; /* Orange variant */
-    --chart-2: 51 100% 60%; /* Yellow variant */
-    --chart-3: 210 40% 50%; /* A contrasting blue */
-    --chart-4: 120 40% 50%; /* A contrasting green */
-    --chart-5: 20 80% 55%; /* A reddish tone */
+    --chart-1: 205 65% 60%; /* Primary variant */
+    --chart-2: 45 100% 70%; /* Accent variant */
+    --chart-3: 170 50% 50%; /* Teal */
+    --chart-4: 30 70% 60%; /* Coral/Orange */
+    --chart-5: 240 50% 65%; /* Lavender */
   }
 }
 

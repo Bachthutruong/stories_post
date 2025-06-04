@@ -2,7 +2,7 @@
 "use client";
 
 import PostForm from '@/components/PostForm';
-import { findPostById, mockUsers } from '@/lib/mock-data'; // Assuming findPostById is available
+import { findPostById } from '@/lib/mock-data'; 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Post } from '@/lib/types';
@@ -10,34 +10,46 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function EditPostPage() {
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const postId = params.id as string;
   const [post, setPost] = useState<Post | null | undefined>(undefined); // undefined for loading, null if not found
   const { user, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     if (postId) {
-      const foundPost = findPostById(postId); // Mock data fetching
+      const foundPost = findPostById(postId); 
       setPost(foundPost || null);
     }
   }, [postId]);
 
   useEffect(() => {
     if (!authLoading && !user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to edit posts.",
+        variant: "destructive"
+      });
       router.push('/auth/login?redirect=/posts/' + postId + '/edit');
-    }
-    if (!authLoading && user && post === null) { // Post not found
-       router.push('/posts'); // Or a 404 page
-    }
-    if (!authLoading && user && post && post.userId && user.id !== post.userId && !user.isAdmin) {
-        // User does not own this post and is not admin
+    } else if (!authLoading && user && post === null) { 
+       toast({
+        title: "Post Not Found",
+        description: "The post you are trying to edit does not exist.",
+        variant: "destructive"
+      });
+       router.push('/posts');
+    } else if (!authLoading && user && post && post.userId && user.id !== post.userId && !user.isAdmin) {
         toast({ title: "Access Denied", description: "You are not authorized to edit this post.", variant: "destructive"});
-        router.push(`/posts`);
+        router.push(`/posts/${postId}`); // Redirect to post view page or home
+    } else if (!authLoading && user && post && !post.userId && !user.isAdmin) { // Post by guest, non-admin cannot edit
+       toast({ title: "Access Denied", description: "You are not authorized to edit this guest post.", variant: "destructive"});
+       router.push(`/posts/${postId}`);
     }
-  }, [authLoading, user, post, router, postId]);
+  }, [authLoading, user, post, router, postId, toast]);
 
 
   if (authLoading || post === undefined) {
@@ -55,36 +67,41 @@ export default function EditPostPage() {
   }
 
   if (!user) {
+     // This state should be brief due to the useEffect redirect
      return (
       <div className="container mx-auto py-8 text-center">
-        <p className="text-xl mb-4">Please log in to edit posts.</p>
-        <Button asChild><Link href={`/auth/login?redirect=/posts/${postId}/edit`}>Login</Link></Button>
+        <p className="text-xl mb-4">Redirecting to login...</p>
       </div>
     );
   }
   
   if (!post) {
+    // This state should be brief due to the useEffect redirect
     return (
       <div className="container mx-auto py-8 text-center">
-        <p className="text-xl">Post not found.</p>
-         <Button asChild><Link href="/posts">Back to Posts</Link></Button>
+        <p className="text-xl">Post not found. Redirecting...</p>
       </div>
     );
   }
 
-  // Additional check for non-admin user trying to edit others' posts
-  // This userId check is basic; real apps use backend validation.
-  const mockPostOwnerId = mockUsers.find(u => u.name === post.userName && u.phone === post.userPhone)?.id;
-  if (!user.isAdmin && user.id !== mockPostOwnerId) {
+  // Final authorization check, should be redundant if useEffect works correctly
+  // but serves as a fallback. User ID logic for mock data:
+  // If post.userId is set, it must match user.id OR user must be admin.
+  // If post.userId is NOT set (guest post), only admin can edit.
+  const canEdit = user.isAdmin || (post.userId && user.id === post.userId);
+
+  if (!canEdit) {
      return (
       <div className="container mx-auto py-8 text-center">
         <p className="text-xl text-destructive">You are not authorized to edit this post.</p>
-        <Button asChild><Link href="/posts">Back to Posts</Link></Button>
+        <Button asChild><Link href={`/posts/${postId}`}>Back to Post</Link></Button>
       </div>
     );
   }
 
-
   return (
     <div className="container mx-auto py-8">
-      <PostForm post
+      <PostForm post={post} onSubmitSuccess={() => router.push(`/posts/${postId}`)} />
+    </div>
+  );
+}
