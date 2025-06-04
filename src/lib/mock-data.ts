@@ -12,44 +12,50 @@ export const mockUsers: User[] = [
 const createMockPost = (idSuffix: string, featured: boolean, i: number, isFlagged?: boolean, flaggedKeywords?: string[]): Post => {
   const userIndex = i % mockUsers.length;
   const currentUser = mockUsers[userIndex];
-  const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000 - i * 3 * 60 * 60 * 1000 - Math.floor(Math.random() * 100000)); // posts spread over days and hours
   
+  // Use a fixed base date and deterministic offsets to avoid hydration issues
+  const baseDate = new Date('2024-05-20T10:00:00.000Z');
+  const postDate = new Date(baseDate.getTime() - i * (24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000 + (i * 10000))); // Subtract days, hours, and a small deterministic offset
+
   // Ensure ID suffix is part of the full ID for lottery matching
-  const postId = `${date.getFullYear()}_${(date.getMonth() + 1).toString().padStart(2, '0')}_${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}_HEMUNG_${idSuffix}`;
+  // The date part of ID should come from the actual postDate for consistency
+  const postId = `${postDate.getFullYear()}_${(postDate.getMonth() + 1).toString().padStart(2, '0')}_${postDate.getDate().toString().padStart(2, '0')}_${postDate.getHours().toString().padStart(2, '0')}_HEMUNG_${idSuffix}`;
   
-  const comments: Comment[] = Array.from({ length: Math.floor(Math.random() * 5) + 1 }, (_, k) => ({
+  const comments: Comment[] = Array.from({ length: Math.floor(i / 2) + 1 }, (_, k) => ({ // Vary comment count
     id: `comment${i}-${k}`,
     postId,
-    guestName: `Guest Commenter ${k+1}`,
-    content: `This is an insightful comment number ${k+1} on post ${i+1}. It adds much value.`,
-    createdAt: new Date(date.getTime() + (k+1) * 60000).toISOString(), // comments after post
-    isFlagged: k % 3 === 0 ? true : false, // Mock some flagged comments
-    flaggedKeywords: k % 3 === 0 ? ['badword'] : []
+    userId: k % 2 === 0 ? mockUsers[(userIndex + k + 1) % mockUsers.length].id : undefined, // Mix registered and guest commenters
+    guestName: k % 2 !== 0 ? `Guest Commenter ${k+1}`: undefined,
+    content: `This is an insightful comment number ${k+1} on post ${i+1}. It adds much value. Lorem ipsum.`,
+    createdAt: new Date(postDate.getTime() + (k+1) * 60000 + (i*1000)).toISOString(), // comments after post, slight variation
+    isFlagged: k % 4 === 0 ? true : false, // Mock some flagged comments
+    flaggedKeywords: k % 4 === 0 ? ['badword'] : []
   }));
 
-  const likes: Like[] = Array.from({ length: Math.floor(Math.random() * 20) + 1 }, (_, k) => ({
+  const likes: Like[] = Array.from({ length: (i * 3) % 20 + 1 }, (_, k) => ({ // Vary like count
     id: `like${i}-${k}`,
     postId,
-    guestName: `Guest Liker ${k+1}`,
-    createdAt: new Date(date.getTime() + (k+1) * 30000).toISOString(),
+    userId: k % 3 === 0 ? mockUsers[(userIndex + k + 2) % mockUsers.length].id : undefined,
+    guestName: k % 3 !== 0 ? `Guest Liker ${k+1}`: undefined,
+    createdAt: new Date(postDate.getTime() + (k+1) * 30000 + (i*500)).toISOString(), // likes after post, slight variation
   }));
 
   return {
     id: postId,
-    userId: currentUser.id, // Assign a user ID for edit checks
+    userId: currentUser.id, 
     userName: currentUser.name,
     userPhone: currentUser.phone,
-    userEmail: currentUser.email || 'test@example.com',
+    userEmail: currentUser.email || `user${i+1}@example.com`,
     images: [
       { url: `https://placehold.co/600x400.png?text=Story+${i+1}`, alt: `Story Image ${i+1}` },
-      ...( i % 3 === 0 ? [{ url: `https://placehold.co/600x400.png?text=Extra+${i+1}`, alt: `Extra Image ${i+1}` }] : []) // Add a second image for some posts
+      ...( i % 3 === 0 ? [{ url: `https://placehold.co/600x400.png?text=Extra+${i+1}`, alt: `Extra Image ${i+1}` }] : [])
     ],
-    description: `This is a sample description for post ${i+1} with ID suffix ${idSuffix}. It showcases community events and local culture. ${'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(Math.max(1, i % 5))}`,
-    createdAt: date.toISOString(),
+    description: `This is a sample description for post ${i+1} with ID suffix ${idSuffix}. It showcases community events and local culture. ${'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(Math.max(1, i % 4 + 1))}`,
+    createdAt: postDate.toISOString(),
     isFeatured: featured,
-    isHidden: i % 5 === 0, // Mock some hidden posts
+    isHidden: i % 7 === 0, // Mock some hidden posts less frequently
     likeCount: likes.length,
-    shareCount: Math.floor(Math.random() * 15) + 1,
+    shareCount: (i * 2) % 15 + 1,
     commentCount: comments.length,
     likes,
     comments,
@@ -59,18 +65,21 @@ const createMockPost = (idSuffix: string, featured: boolean, i: number, isFlagge
 };
 
 export const mockPosts: Post[] = [
-  createMockPost('123', true, 0, false, []), // Lottery winner candidate
-  createMockPost('456', true, 1, true, ['offensive']), // Lottery winner candidate, flagged
-  createMockPost('789', false, 2, false, []), // Lottery winner candidate
+  createMockPost('123', true, 0, false, []), 
+  createMockPost('456', true, 1, true, ['offensive']), 
+  createMockPost('789', false, 2, false, []), 
   createMockPost('101', true, 3, false, []),
-  createMockPost('202', false, 4, true, ['inappropriate', 'badword']), // Flagged
+  createMockPost('202', false, 4, true, ['inappropriate', 'badword']),
   createMockPost('303', false, 5, false, []),
   createMockPost('404', true, 6, false, []),
   createMockPost('505', false, 7, false, []),
-  createMockPost('606', false, 8, true, ['spam']), // Flagged
+  createMockPost('606', false, 8, true, ['spam']), 
   createMockPost('707', true, 9, false, []),
   createMockPost('808', false, 10, false, []), 
   createMockPost('909', false, 11, false, []), 
+  createMockPost('110', true, 12, false, []),
+  createMockPost('221', false, 13, true, ['test']),
+  createMockPost('332', true, 14, false, []),
 ];
 
 export const findPostById = (id: string): Post | undefined => mockPosts.find(post => post.id === id);
@@ -89,36 +98,48 @@ export const mockModerationKeywords: ModerationKeyword[] = [
   { id: 'kw3', keyword: 'badword' },
   { id: 'kw4', keyword: 'spam' },
   { id: 'kw5', keyword: 'hate' },
+  { id: 'kw6', keyword: 'test' },
 ];
 
+const lotteryBaseDate = new Date('2024-05-01T10:00:00.000Z');
 export const mockLotteryPrograms: LotteryProgram[] = [
   { 
     id: 'lottery1', 
-    name: 'Grand Prize Draw - June', 
+    name: 'Grand Prize Draw - May', 
     winningNumbers: ['123', '789'], 
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+    createdAt: new Date(lotteryBaseDate.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
     winningPosts: mockPosts.filter(p => {
       const suffix = p.id.split('_HEMUNG_')[1];
-      return suffix && (suffix.startsWith('123') || suffix.startsWith('789'));
+      return suffix && (suffix.startsWith('123') || suffix.startsWith('789')) && !p.isFlagged && !p.isHidden;
     })
   },
    { 
     id: 'lottery2', 
-    name: 'Mid-Year Special Draw', 
+    name: 'Mid-Month Special Draw', 
     winningNumbers: ['456'], 
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
+    createdAt: new Date(lotteryBaseDate.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString(),
     winningPosts: mockPosts.filter(p => {
       const suffix = p.id.split('_HEMUNG_')[1];
-      return suffix && suffix.startsWith('456');
+      return suffix && suffix.startsWith('456') && !p.isFlagged && !p.isHidden;
     })
   },
 ];
 
-export const mockReports: Report[] = [
-  { id: 'report1', postId: mockPosts[2].id, reason: 'Spam content, irrelevant to community.', reportedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), reportedByGuestName: 'Concerned User X' },
-  { id: 'report2', postId: mockPosts[4].id, reason: 'Misleading information and potentially harmful advice.', reportedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), reportedByUserId: 'user2' },
-  { id: 'report3', postId: mockPosts[8].id, reason: 'Contains offensive language.', reportedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), reportedByGuestName: 'Anonymous Guest' },
-];
+const reportBaseDate = new Date('2024-05-10T10:00:00.000Z');
+export const mockReports: Report[] = mockPosts.reduce((acc, post, index) => {
+  if (index % 4 === 0 && post.id) { // Create reports for some posts
+    acc.push({
+      id: `report${index}`,
+      postId: post.id,
+      reason: `This is a sample report for post ${post.id}. Reason: ${index % 2 === 0 ? 'Spam content' : 'Offensive imagery'}.`,
+      reportedAt: new Date(reportBaseDate.getTime() + index * (12 * 60 * 60 * 1000)).toISOString(), // Reports spread out
+      reportedByUserId: index % 3 === 0 ? mockUsers[(index + 1) % mockUsers.length].id : undefined,
+      reportedByGuestName: index % 3 !== 0 ? `Concerned Guest ${index}` : undefined,
+    });
+  }
+  return acc;
+}, [] as Report[]);
+
 
 export const mockAppStats: AppStats = {
   totalPosts: mockPosts.length,
@@ -129,3 +150,4 @@ export const mockAppStats: AppStats = {
   totalReports: mockReports.length,
   activeLotteryPrograms: mockLotteryPrograms.length,
 };
+
