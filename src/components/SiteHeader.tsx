@@ -1,5 +1,7 @@
+
 "use client";
 
+import React from 'react'; // Added React import
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Home, PlusCircle, Newspaper, UserCircle, LogIn, LogOut, Shield } from 'lucide-react';

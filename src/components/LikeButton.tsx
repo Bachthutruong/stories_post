@@ -65,4 +65,8 @@ export function LikeButton({ postId, initialLikes, isInitiallyLiked }: LikeButto
         isAnimating && "animate-subtle-pulse"
       )}
     >
-      <Heart className={cn("h-4 w-4", isLiked &&
+      <Heart className={cn("h-4 w-4", isLiked && "fill-current text-primary")} />
+      <span>{likes}</span>
+    </Button>
+  );
+}
