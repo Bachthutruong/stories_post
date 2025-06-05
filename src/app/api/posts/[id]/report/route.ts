@@ -6,7 +6,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     await dbConnect();
 
     try {
-        const { id: postId } = params;
+        const postId = params.id;
         const body = await request.json();
         const { reason, userId } = body;
 

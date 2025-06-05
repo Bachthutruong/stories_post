@@ -15,6 +15,7 @@ import useDebounce from '@/hooks/useDebounce';
 interface Post {
     _id: string;
     postId: string;
+    title: string;
     description: string;
     images: { url: string; public_id: string }[];
     likes: number;
@@ -90,7 +91,7 @@ export default function AllPostsPage() {
     const renderPostCard = (post: Post) => (
         <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-                <CardTitle>{post.description.substring(0, 50)}...</CardTitle>
+                <CardTitle>{post.title}</CardTitle>
                 <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
             </CardHeader>
             <CardContent>

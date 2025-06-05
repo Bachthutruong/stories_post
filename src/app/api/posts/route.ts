@@ -2,9 +2,22 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Post from '@/models/Post';
 import User from '@/models/User';
+import Keyword from '@/models/Keyword';
 import cloudinary from '@/lib/cloudinary';
 import { generatePostId } from '@/lib/utils/postIdGenerator';
 import bcrypt from 'bcryptjs';
+
+// Helper function to check for safe keywords
+async function containsSafeKeyword(text: string): Promise<boolean> {
+    const safeKeywords = await Keyword.find({ isSafe: true });
+    const lowerCaseText = text.toLowerCase();
+    for (const keyword of safeKeywords) {
+        if (lowerCaseText.includes(keyword.word.toLowerCase())) {
+            return true;
+        }
+    }
+    return false;
+}
 
 export async function POST(request: Request) {
     await dbConnect();
@@ -19,22 +32,43 @@ export async function POST(request: Request) {
         const files = formData.getAll('images') as File[];
         const title = formData.get('title') as string;
 
-        if (!title || !description || !name || !phoneNumber || !email || files.length === 0) {
+        // Determine post status based on safe keywords
+        const postStatus = (await containsSafeKeyword(title) || await containsSafeKeyword(description))
+            ? 'approved'
+            : 'pending_review';
+
+        // Prepare email for querying and saving: use actual email or undefined if empty/null
+        const effectiveEmail = email && email !== '' ? email : undefined;
+
+        if (!title || !description || !name || !phoneNumber || files.length === 0) {
             return NextResponse.json({ message: 'Please fill all required fields and upload at least one image' }, { status: 400 });
         }
 
         // 1. User Handling (Register or use existing)
-        let user = await User.findOne({ $or: [{ phoneNumber }, { email }] });
+        let user;
+        const findConditions: any[] = [{ phoneNumber }];
+
+        // If an email is provided, add it to the search conditions.
+        if (effectiveEmail) {
+            findConditions.push({ email: effectiveEmail });
+        }
+
+        user = await User.findOne({ $or: findConditions });
 
         if (!user) {
             // Auto-register user if not found
             const hashedPassword = await bcrypt.hash(phoneNumber, 10); // Using phoneNumber as a temporary password
-            user = await User.create({
+            const userData: any = {
                 name,
                 phoneNumber,
-                email,
                 password: hashedPassword,
-            });
+            };
+            // Only add email to userData if it's a non-empty string
+            if (typeof effectiveEmail === 'string' && effectiveEmail !== '') {
+                userData.email = effectiveEmail;
+            }
+
+            user = await User.create(userData);
             // console.warn('New user auto-registered with phone number as temporary password. Advise user to change password.');
         }
 
@@ -71,6 +105,7 @@ export async function POST(request: Request) {
             images: uploadedImages,
             description,
             title,
+            status: postStatus,
         });
 
         return NextResponse.json({ message: 'Post created successfully', post: newPost }, { status: 201 });

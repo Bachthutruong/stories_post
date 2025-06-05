@@ -40,20 +40,22 @@ export async function GET(request: Request) {
             postFilter.userId = { $in: userIds };
         }
 
-        // Add filtering for isFeatured and isHidden
+        // Add filtering for isFeatured, isHidden, and status
         if (filterBy === 'isFeatured') {
             postFilter.isFeatured = true;
         } else if (filterBy === 'isHidden') {
             postFilter.isHidden = true;
+        } else if (['approved', 'pending_review', 'rejected'].includes(filterBy)) {
+            postFilter.status = filterBy; // Filter by status
         }
 
         // Define sorting options
         let sortOptions: any = {};
         if (filterBy && filterBy !== 'none') {
-             // Handle sorting for likes, shares, commentsCount, createdAt directly
-             if (['likes', 'shares', 'commentsCount', 'createdAt'].includes(filterBy)) {
+            // Handle sorting for likes, shares, commentsCount, createdAt directly
+            if (['likes', 'shares', 'commentsCount', 'createdAt'].includes(filterBy)) {
                 sortOptions[filterBy] = sortOrder === 'asc' ? 1 : -1;
-            } 
+            }
             // isFeatured and isHidden are now handled in filtering, so remove from sort
             // else if (filterBy === 'isFeatured') {
             //      sortOptions['isFeatured'] = sortOrder === 'asc' ? 1 : -1;
@@ -61,8 +63,8 @@ export async function GET(request: Request) {
             //      sortOptions['isHidden'] = sortOrder === 'asc' ? 1 : -1;
             // }
         } else {
-             // Default sort by createdAt if no filter specified
-             sortOptions['createdAt'] = -1; // Descending
+            // Default sort by createdAt if no filter specified
+            sortOptions['createdAt'] = -1; // Descending
         }
 
         // Get total number of posts matching the filter

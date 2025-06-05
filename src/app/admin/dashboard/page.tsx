@@ -120,7 +120,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow">
+        {/* <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle>System Statistics</CardTitle>
             <CardDescription>View overall system statistics.</CardDescription>
@@ -130,7 +130,7 @@ export default function AdminDashboardPage() {
               <Button className="w-full">View Stats</Button>
             </Link>
           </CardContent>
-        </Card>
+        </Card> */}
 
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>

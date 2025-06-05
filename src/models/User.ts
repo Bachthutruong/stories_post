@@ -14,8 +14,8 @@ const UserSchema = new Schema({
     },
     email: {
         type: String,
-        required: [true, 'Please provide an email for this user.'],
-        unique: true,
+        required: false,
+        default: undefined,
         maxlength: [50, 'Email cannot be more than 50 characters'],
     },
     password: {
@@ -32,5 +32,11 @@ const UserSchema = new Schema({
         default: 'user',
     },
 }, { timestamps: true });
+
+// Remove the old unique index and add a partial unique index for email
+UserSchema.index(
+    { email: 1 },
+    { unique: true, partialFilterExpression: { email: { $exists: true, $ne: null } } }
+);
 
 export default models.User || model('User', UserSchema); 

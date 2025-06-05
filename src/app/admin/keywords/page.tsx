@@ -14,15 +14,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { Switch } from '@/components/ui/switch';
 
 interface Keyword {
   _id: string;
   word: string;
+  isSafe: boolean;
   createdAt: string;
 }
 
 const keywordFormSchema = z.object({
   word: z.string().min(2, { message: 'Keyword must be at least 2 characters.' }),
+  isSafe: z.boolean().default(false),
 });
 
 type KeywordFormValues = z.infer<typeof keywordFormSchema>;
@@ -38,7 +41,7 @@ export default function AdminManageKeywordsPage() {
 
   const keywordForm = useForm<KeywordFormValues>({
     resolver: zodResolver(keywordFormSchema),
-    defaultValues: { word: '' },
+    defaultValues: { word: '', isSafe: false },
   });
 
   useEffect(() => {
@@ -113,7 +116,7 @@ export default function AdminManageKeywordsPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ word: updatedKeyword.word }),
+        body: JSON.stringify({ word: updatedKeyword.word, isSafe: updatedKeyword.isSafe }),
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -180,12 +183,13 @@ export default function AdminManageKeywordsPage() {
   const handleEditClick = (keyword: Keyword) => {
     setSelectedKeyword(keyword);
     keywordForm.setValue('word', keyword.word);
+    keywordForm.setValue('isSafe', keyword.isSafe);
     setIsAddEditDialogOpen(true);
   };
 
   const onSubmit = (values: KeywordFormValues) => {
     if (selectedKeyword) {
-      updateKeywordMutation.mutate({ ...selectedKeyword, word: values.word });
+      updateKeywordMutation.mutate({ ...selectedKeyword, word: values.word, isSafe: values.isSafe });
     } else {
       addKeywordMutation.mutate(values);
     }
@@ -228,6 +232,7 @@ export default function AdminManageKeywordsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Keyword</TableHead>
+              <TableHead>Is Safe</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -243,6 +248,7 @@ export default function AdminManageKeywordsPage() {
               keywords?.map((keyword) => (
                 <TableRow key={keyword._id}>
                   <TableCell className="font-medium">{keyword.word}</TableCell>
+                  <TableCell>{keyword.isSafe ? 'Yes' : 'No'}</TableCell>
                   <TableCell>{new Date(keyword.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button variant="outline" size="icon" onClick={() => handleEditClick(keyword)}>
@@ -265,20 +271,32 @@ export default function AdminManageKeywordsPage() {
           <DialogHeader>
             <DialogTitle>{selectedKeyword ? 'Edit Keyword' : 'Add New Keyword'}</DialogTitle>
             <DialogDescription>
-              {selectedKeyword ? 'Make changes to the keyword here.' : 'Add a new safe keyword.'}
+              {selectedKeyword ? 'Edit the keyword here.' : 'Add a new keyword here.'}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={keywordForm.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="word" className="text-right">Keyword</label>
+          <form onSubmit={keywordForm.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid gap-2">
+              <label htmlFor="word" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Keyword
+              </label>
               <Input
                 id="word"
+                placeholder="Enter keyword"
                 {...keywordForm.register('word')}
-                className="col-span-3"
               />
               {keywordForm.formState.errors.word && (
-                <p className="col-span-4 text-red-500 text-sm text-right">{keywordForm.formState.errors.word.message}</p>
+                <p className="text-sm text-red-500">{keywordForm.formState.errors.word.message}</p>
               )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is-safe"
+                checked={keywordForm.watch('isSafe')}
+                onCheckedChange={(checked) => keywordForm.setValue('isSafe', checked)}
+              />
+              <label htmlFor="is-safe" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Mark as Safe Keyword
+              </label>
             </div>
             <DialogFooter>
               <Button type="submit" disabled={addKeywordMutation.isPending || updateKeywordMutation.isPending}>

@@ -16,10 +16,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, Eye, EyeOff, Star } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import useDebounce from '@/hooks/useDebounce';
+import { highlightSensitiveKeywords } from '@/lib/utils/keywordHighlighter';
+import { truncateText } from '@/lib/utils/textUtils';
 
 interface Post {
   _id: string;
   postId: string;
+  title: string;
   description: string;
   images: { url: string; public_id: string }[];
   likes: number;
@@ -27,6 +30,7 @@ interface Post {
   commentsCount: number;
   isFeatured: boolean;
   isHidden: boolean;
+  status: 'approved' | 'pending_review' | 'rejected';
   userId: {
     _id: string; // Add _id for user
     name: string;
@@ -50,17 +54,29 @@ export default function AdminManagePostsPage() {
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useAuth();
 
+  // Fetch sensitive keywords
+  const { data: sensitiveKeywords, isLoading: isLoadingSensitiveKeywords } = useQuery<string[], Error>({
+    queryKey: ['sensitiveKeywords'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/keywords?isSafe=false', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch sensitive keywords');
+      }
+      const data = await res.json();
+      return data.keywords.map((k: { word: string }) => k.word);
+    },
+    enabled: !isAuthLoading && user?.user.role === 'admin', // Only fetch if admin
+  });
+
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [filterBy, setFilterBy] = useState(searchParams.get('filterBy') || 'none');
   const [sortOrder, setSortOrder] = useState(searchParams.get('sortOrder') || 'desc');
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [editDescription, setEditDescription] = useState('');
-  const [editIsFeatured, setEditIsFeatured] = useState(false);
-  const [editIsHidden, setEditIsHidden] = useState(false);
-
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [postToDeleteId, setPostToDeleteId] = useState<string | null>(null);
 
@@ -133,8 +149,6 @@ export default function AdminManagePostsPage() {
         description: data.message || 'Post updated successfully',
         variant: 'default',
       });
-      setIsEditDialogOpen(false);
-      setSelectedPost(null);
     },
     onError: (error) => {
       toast({
@@ -166,6 +180,7 @@ export default function AdminManagePostsPage() {
         description: data.message || 'Post deleted successfully',
         variant: 'default',
       });
+      router.push('/admin/posts');
     },
     onError: (error) => {
       toast({
@@ -183,22 +198,11 @@ export default function AdminManagePostsPage() {
   };
 
   const handleEditClick = (post: Post) => {
-    setSelectedPost(post);
-    setEditDescription(post.description);
-    setEditIsFeatured(post.isFeatured);
-    setEditIsHidden(post.isHidden);
-    setIsEditDialogOpen(true);
+    router.push(`/admin/posts/${post._id}`);
   };
 
   const handleEditSubmit = () => {
-    if (selectedPost) {
-      updatePostMutation.mutate({
-        _id: selectedPost._id,
-        description: editDescription,
-        isFeatured: editIsFeatured,
-        isHidden: editIsHidden,
-      });
-    }
+    // No longer needed here as editing happens on detail page
   };
 
   const handleDeleteClick = (postId: string) => {
@@ -248,6 +252,9 @@ export default function AdminManagePostsPage() {
           <SelectContent>
             <SelectItem value="none">None</SelectItem>
             <SelectItem value="createdAt">Time Posted</SelectItem>
+            <SelectItem value="pending_review">Pending Review</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
             <SelectItem value="likes">Likes</SelectItem>
             <SelectItem value="shares">Shares</SelectItem>
             <SelectItem value="commentsCount">Comments</SelectItem>
@@ -270,9 +277,29 @@ export default function AdminManagePostsPage() {
         {data?.posts.map((post) => (
           <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg">
             <CardHeader>
-              <CardTitle>{post.description.substring(0, 50)}...</CardTitle>
+              <CardTitle
+                dangerouslySetInnerHTML={user?.user.role === 'admin' && sensitiveKeywords
+                  ? { __html: highlightSensitiveKeywords(post.title || '', sensitiveKeywords) }
+                  : undefined
+                }
+              >
+                {user?.user.role !== 'admin' || !sensitiveKeywords
+                  ? post.title
+                  : null
+                }
+              </CardTitle>
               <CardDescription>
-                By {post.userId?.name || 'Anonymous'} ({post.userId?.phoneNumber})
+                <span
+                  dangerouslySetInnerHTML={user?.user.role === 'admin' && sensitiveKeywords
+                    ? { __html: highlightSensitiveKeywords(`By ${post.userId?.name || 'Anonymous'} (${post.userId?.phoneNumber || ''})`, sensitiveKeywords) }
+                    : undefined
+                  }
+                >
+                  {user?.user.role !== 'admin' || !sensitiveKeywords
+                    ? `By ${post.userId?.name || 'Anonymous'} (${post.userId?.phoneNumber || ''})`
+                    : null
+                  }
+                </span>
                 <br />
                 Post ID: {post.postId} - {new Date(post.createdAt).toLocaleDateString()}
               </CardDescription>
@@ -291,6 +318,24 @@ export default function AdminManagePostsPage() {
               )}
               <p className="text-sm text-gray-600 mb-2">Likes: {post.likes}, Shares: {post.shares}, Comments: {post.commentsCount}</p>
               <p className="text-sm text-gray-600 mb-2">Featured: {post.isFeatured ? 'Yes' : 'No'}, Hidden: {post.isHidden ? 'Yes' : 'No'}</p>
+              <p className="text-sm text-gray-800 mt-2">
+                <span
+                  dangerouslySetInnerHTML={user?.user.role === 'admin' && sensitiveKeywords
+                    ? { __html: highlightSensitiveKeywords(truncateText(post.description || '', 150), sensitiveKeywords) }
+                    : undefined
+                  }
+                >
+                  {user?.user.role !== 'admin' || !sensitiveKeywords
+                    ? truncateText(post.description, 150)
+                    : null
+                  }
+                </span>
+              </p>
+              <p className="text-sm text-gray-800 mt-2">
+                Status: <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${post.status === 'approved' ? 'bg-green-100 text-green-800' : post.status === 'pending_review' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                  {typeof post.status === 'string' && post.status ? (post.status.replace(/_/g, ' ').charAt(0).toUpperCase() + post.status.replace(/_/g, ' ').slice(1)) : 'N/A'}
+                </span>
+              </p>
             </CardContent>
             <CardFooter className="flex justify-end space-x-2">
               <Button variant="outline" size="icon" onClick={() => handleEditClick(post)}>
@@ -299,7 +344,7 @@ export default function AdminManagePostsPage() {
               <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(post._id)}>
                 <Trash2 className="w-4 h-4" />
               </Button>
-              <Link href={`/posts/${post._id}`} target="_blank">
+              <Link href={`/admin/posts/${post._id}`}>
                 <Button variant="outline" size="icon"><Eye className="w-4 h-4" /></Button>
               </Link>
             </CardFooter>
@@ -326,51 +371,7 @@ export default function AdminManagePostsPage() {
       </div>
 
       {/* Edit Post Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Post</DialogTitle>
-            <DialogDescription>
-              Make changes to the post here. Click save when you're done.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="editDescription" className="text-right">Description</label>
-              <Textarea
-                id="editDescription"
-                value={editDescription}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditDescription(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isFeatured"
-                checked={editIsFeatured}
-                onCheckedChange={(checked) => setEditIsFeatured(!!checked)}
-              />
-              <label htmlFor="isFeatured" className="text-sm font-medium leading-none">Feature Post</label>
-              <Star className="w-4 h-4 text-yellow-500" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="isHidden"
-                checked={editIsHidden}
-                onCheckedChange={(checked) => setEditIsHidden(!!checked)}
-              />
-              <label htmlFor="isHidden" className="text-sm font-medium leading-none">Hide Post</label>
-              {editIsHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit" onClick={handleEditSubmit} disabled={updatePostMutation.isPending}>
-              {updatePostMutation.isPending ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      {/* This dialog is no longer needed as editing is moved to the detail page */}
       {/* Delete Post Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
