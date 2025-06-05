@@ -17,8 +17,9 @@ export async function POST(request: Request) {
         const phoneNumber = formData.get('phoneNumber') as string;
         const email = formData.get('email') as string;
         const files = formData.getAll('images') as File[];
+        const title = formData.get('title') as string;
 
-        if (!description || !name || !phoneNumber || !email || files.length === 0) {
+        if (!title || !description || !name || !phoneNumber || !email || files.length === 0) {
             return NextResponse.json({ message: 'Please fill all required fields and upload at least one image' }, { status: 400 });
         }
 
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
             userId: user._id,
             images: uploadedImages,
             description,
+            title,
         });
 
         return NextResponse.json({ message: 'Post created successfully', post: newPost }, { status: 201 });

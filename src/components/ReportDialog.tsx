@@ -44,7 +44,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ postId, isOpen, onOpenChang
     }
 
     // Simulate API call
-    console.log('Submitting report:', { postId, reportedBy: user ? user.id : data.guestName, reason: data.reason });
+    console.log('Submitting report:', { postId, reportedBy: user ? user.user.id : data.guestName, reason: data.reason });
     // TODO: Implement actual report submission logic
     
     setTimeout(() => { // Simulate network delay

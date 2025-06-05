@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Heart, Share2, MessageCircle } from 'lucide-react';
+import useDebounce from '@/hooks/useDebounce';
 
 interface Post {
     _id: string;
@@ -41,13 +42,14 @@ export default function AllPostsPage() {
     const searchParams = useSearchParams();
 
     const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
     const [filterBy, setFilterBy] = useState(searchParams.get('filterBy') || '');
     const [sortOrder, setSortOrder] = useState(searchParams.get('sortOrder') || 'desc');
     const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
 
     const buildQueryString = () => {
         const params = new URLSearchParams();
-        if (searchQuery) params.set('search', searchQuery);
+        if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
         if (filterBy) params.set('filterBy', filterBy);
         if (sortOrder) params.set('sortOrder', sortOrder);
         params.set('page', page.toString());
@@ -57,10 +59,10 @@ export default function AllPostsPage() {
     useEffect(() => {
         const queryString = buildQueryString();
         router.push(`/posts?${queryString}`, { scroll: false });
-    }, [searchQuery, filterBy, sortOrder, page]);
+    }, [debouncedSearchQuery, filterBy, sortOrder, page]);
 
     const { data, isLoading, error } = useQuery<AllPostsData, Error>({
-        queryKey: ['allPosts', searchQuery, filterBy, sortOrder, page],
+        queryKey: ['allPosts', debouncedSearchQuery, filterBy, sortOrder, page],
         queryFn: async () => {
             const queryString = buildQueryString();
             const res = await fetch(`/api/posts?${queryString}`);

@@ -1,8 +1,6 @@
-
 "use client";
 
-import { useState, useMemo } from 'react';
-import { mockLotteryPrograms } from '@/lib/mock-data';
+import { useState, useMemo, useEffect } from 'react';
 import type { LotteryProgram } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -12,10 +10,38 @@ import { Award, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function LotteryWinnersPage() {
-  const [programs] = useState<LotteryProgram[]>(mockLotteryPrograms);
+  const [programs, setPrograms] = useState<LotteryProgram[]>([]);
+
+  useEffect(() => {
+    const fetchWinners = async () => {
+      try {
+        const response = await fetch('/api/lottery/winners');
+        if (!response.ok) {
+          throw new Error('Failed to fetch lottery winners');
+        }
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setPrograms(data);
+        } else {
+          console.warn("API response is not an array:", data);
+        }
+      } catch (error) {
+        console.error("Error fetching lottery winners:", error);
+        // Optionally set an error state here
+      }
+    };
+
+    fetchWinners();
+  }, []);
 
   const sortedPrograms = useMemo(() => {
-    return [...programs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Ensure programs is treated as an array before sorting
+    const programsArray = Array.isArray(programs) ? programs : [];
+    if (programsArray.length === 0) {
+      return []; // Return empty array if no programs or not an array
+    }
+    // Use slice() to create a copy, potentially more resilient
+    return programsArray.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [programs]);
 
   return (
@@ -29,17 +55,17 @@ export default function LotteryWinnersPage() {
       {sortedPrograms.length > 0 ? (
         <Accordion type="single" collapsible className="w-full">
           {sortedPrograms.map((program, index) => (
-            <AccordionItem value={`item-${index}`} key={program.id}>
+            <AccordionItem value={`item-${index}`} key={`${program.id}-${index}`}>
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex justify-between items-center w-full pr-4">
                   <div className="text-left">
                     <h2 className="text-xl font-semibold text-primary">{program.name}</h2>
                     <p className="text-sm text-muted-foreground flex items-center">
-                      <CalendarDays className="h-4 w-4 mr-1.5" /> Drawn on: {formatDate(program.createdAt, 'PP')}
+                      <CalendarDays className="h-4 w-4 mr-1.5" /> Drawn on: {formatDate(program.drawDate)}
                     </p>
                   </div>
-                  <Badge variant={program.winningPosts && program.winningPosts.length > 0 ? "default" : "outline"}>
-                    {program.winningPosts?.length || 0} Winner(s)
+                  <Badge variant={program.winners && Array.isArray(program.winners) && program.winners.length > 0 ? "default" : "outline"}>
+                    {program.winners && Array.isArray(program.winners) ? program.winners.length : 0} Winner(s)
                   </Badge>
                 </div>
               </AccordionTrigger>
@@ -51,14 +77,19 @@ export default function LotteryWinnersPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {program.winningPosts && program.winningPosts.length > 0 ? (
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {program.winningPosts.map(post => (
-                          <PostCard key={post.id} post={post} showInteractionsInitially={false} />
+                    {program.winners && Array.isArray(program.winners) && program.winners.length > 0 ? (
+                      <div className="space-y-4">
+                        {program.winners.map((winnerEntry) => (
+                           <Card key={`${program.id}-${winnerEntry._id}`} className="p-4">
+                              <CardTitle className="text-lg">{winnerEntry.userId?.name || 'Người dùng ẩn danh'}</CardTitle>
+                              <CardDescription className="text-sm">Số điện thoại: {winnerEntry.userId?.phoneNumber || 'N/A'}</CardDescription>
+                              {/* Optionally display winning post ID or link */}
+                              {/* <p className="text-sm text-muted-foreground mt-1">Winning Post ID: {winnerEntry.postId}</p> */}
+                           </Card>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground text-center py-6">No winning posts found for this program's numbers.</p>
+                      <p className="text-muted-foreground text-center py-6">Chưa có người trúng thưởng nào cho chương trình này.</p>
                     )}
                   </CardContent>
                 </Card>

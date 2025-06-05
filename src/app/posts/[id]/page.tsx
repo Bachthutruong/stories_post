@@ -18,6 +18,7 @@ import { Heart, Share2, MessageCircle, Flag } from 'lucide-react';
 interface Post {
     _id: string;
     postId: string;
+    title: string;
     description: string;
     images: { url: string; public_id: string }[];
     likes: number;
@@ -267,31 +268,30 @@ export default function PostDetailPage() {
     };
 
     if (isPostLoading) {
-        return <div className="container mx-auto p-4 text-center">Loading post details...</div>;
+        return <div>Loading post...</div>;
     }
 
     if (postError) {
-        return <div className="container mx-auto p-4 text-center text-red-500">Error: {postError.message}</div>;
+        return <div>Error loading post: {postError.message}</div>;
     }
 
     if (!post) {
-        return <div className="container mx-auto p-4 text-center">Post not found.</div>;
+        return <div>Post not found.</div>;
     }
 
     const isUserLoggedIn = !!authenticatedUserId; // Simple check for now
 
     return (
         <div className="container mx-auto p-4">
-            <Card className="w-full max-w-2xl mx-auto shadow-lg">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-bold">{post.description}</CardTitle>
-                    <CardDescription className="text-sm text-gray-600">
-                        Posted by {post.userId?.name || 'Anonymous'} on {new Date(post.createdAt).toLocaleDateString()}
-                        <br />
-                        Post ID: {post.postId}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
+            <div className="w-full max-w-3xl mx-auto shadow-lg p-6 bg-white rounded-lg">
+                <h1 className="text-2xl font-bold">{post.title}</h1>
+                <p className="text-sm text-gray-600">
+                    Posted by {post.userId?.name || 'Anonymous'} on {new Date(post.createdAt).toLocaleDateString()}
+                    <br />
+                    Post ID: {post.postId}
+                </p>
+
+                <div className="mt-4">
                     {post.images && post.images.length > 0 && (
                         <div className="relative w-full h-80 mb-4 rounded-md overflow-hidden">
                             <Image
@@ -316,113 +316,113 @@ export default function PostDetailPage() {
                     )}
                     <p className="text-base text-gray-800 mb-4">{post.description}</p>
 
-                    <div className="flex items-center justify-around border-t border-b py-3 mb-4">
-                        <div className="flex items-center space-x-1">
-                            <Button variant="ghost" size="icon" onClick={() => likeMutation.mutate({ userId: authenticatedUserId, userIp: '127.0.0.1' })} disabled={likeMutation.isPending}>
-                                <Heart className="w-5 h-5" />
-                            </Button>
-                            <span>{post.likes}</span>
-                            <Dialog open={isLikersDialogOpen} onOpenChange={setIsLikersDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="link" size="sm">View Likes</Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>People Who Liked This Post</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="h-60 overflow-y-auto">
-                                        {isLikersLoading ? (
-                                            <p>Loading likers...</p>
-                                        ) : likersError ? (
-                                            <p className="text-red-500">Error loading likers: {likersError.message}</p>
-                                        ) : likers && likers.length > 0 ? (
-                                            <ul>
-                                                {likers.map((like) => (
-                                                    <li key={like._id} className="py-1 border-b last:border-b-0">
-                                                        {like.userId?.name || like.name || 'Anonymous'} (IP: {like.userIp})
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        ) : (
-                                            <p>No one has liked this post yet.</p>
-                                        )}
-                                    </div>
-                                    <DialogFooter>
-                                        <Button onClick={() => setIsLikersDialogOpen(false)}>Close</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-
-                        <div className="flex items-center space-x-1">
-                            <Button variant="ghost" size="icon" onClick={() => shareMutation.mutate()} disabled={shareMutation.isPending}>
-                                <Share2 className="w-5 h-5" />
-                            </Button>
-                            <span>{post.shares}</span>
-                        </div>
-
-                        <div className="flex items-center space-x-1">
-                            <MessageCircle className="w-5 h-5" />
-                            <span>{post.commentsCount}</span>
-                            <Dialog open={isCommentDialogOpen} onOpenChange={setIsCommentDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="link" size="sm">Add Comment</Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Add Your Comment</DialogTitle>
-                                        <DialogDescription>
-                                            {isUserLoggedIn ? (
-                                                "You are logged in. Your comment will be associated with your account."
-                                            ) : (
-                                                "Enter your name to comment anonymously. Your IP address will be recorded."
-                                            )}
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <form onSubmit={commentForm.handleSubmit(onCommentSubmit)} className="space-y-4">
-                                        {!isUserLoggedIn && (
-                                            <div>
-                                                <label htmlFor="commentName" className="block text-sm font-medium text-gray-700">Your Name</label>
-                                                <Input id="commentName" {...commentForm.register('name')} />
-                                                {commentForm.formState.errors.name && (
-                                                    <p className="text-red-500 text-sm">{commentForm.formState.errors.name.message}</p>
+                            <div className="flex items-center justify-around border-t border-b py-3 mb-4">
+                                <div className="flex items-center space-x-1">
+                                    <Button variant="ghost" size="icon" onClick={() => likeMutation.mutate({ userId: authenticatedUserId, userIp: '127.0.0.1' })} disabled={likeMutation.isPending}>
+                                        <Heart className="w-5 h-5" />
+                                    </Button>
+                                    <span>{post.likes}</span>
+                                    <Dialog open={isLikersDialogOpen} onOpenChange={setIsLikersDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="link" size="sm">View Likes</Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>People Who Liked This Post</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="h-60 overflow-y-auto">
+                                                {isLikersLoading ? (
+                                                    <p>Loading likers...</p>
+                                                ) : likersError ? (
+                                                    <p className="text-red-500">Error loading likers: {likersError.message}</p>
+                                                ) : likers && likers.length > 0 ? (
+                                                    <ul>
+                                                        {likers.map((like) => (
+                                                            <li key={like._id} className="py-1 border-b last:border-b-0">
+                                                                {like.userId?.name || like.name || 'Anonymous'} (IP: {like.userIp})
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p>No one has liked this post yet.</p>
                                                 )}
                                             </div>
-                                        )}
-                                        <div>
-                                            <label htmlFor="commentContent" className="block text-sm font-medium text-gray-700">Comment</label>
-                                            <Textarea id="commentContent" {...commentForm.register('content')} />
-                                            {commentForm.formState.errors.content && (
-                                                <p className="text-red-500 text-sm">{commentForm.formState.errors.content.message}</p>
-                                            )}
-                                        </div>
-                                        <DialogFooter>
-                                            <Button type="submit" disabled={commentForm.formState.isSubmitting}>Submit Comment</Button>
-                                        </DialogFooter>
-                                    </form>
-                                    <h3 className="text-lg font-semibold mt-4">Comments ({comments?.length || 0})</h3>
-                                    <div className="max-h-60 overflow-y-auto border rounded-md p-2">
-                                        {isCommentsLoading ? (
-                                            <p>Loading comments...</p>
-                                        ) : commentsError ? (
-                                            <p className="text-red-500">Error loading comments: {commentsError.message}</p>
-                                        ) : comments && comments.length > 0 ? (
-                                            <ul>
-                                                {comments.map((comment) => (
-                                                    <li key={comment._id} className="py-2 border-b last:border-b-0">
-                                                        <p className="text-sm font-semibold">{comment.userId?.name || comment.name || 'Anonymous'}</p>
-                                                        <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()} (IP: {comment.userIp})</p>
-                                                        <p className="text-gray-700 mt-1">{comment.content}</p>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        ) : (
-                                            <p>No comments yet. Be the first to comment!</p>
-                                        )}
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
+                                            <DialogFooter>
+                                                <Button onClick={() => setIsLikersDialogOpen(false)}>Close</Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+
+                                <div className="flex items-center space-x-1">
+                                    <Button variant="ghost" size="icon" onClick={() => shareMutation.mutate()} disabled={shareMutation.isPending}>
+                                        <Share2 className="w-5 h-5" />
+                                    </Button>
+                                    <span>{post.shares}</span>
+                                </div>
+
+                                <div className="flex items-center space-x-1">
+                                    <MessageCircle className="w-5 h-5" />
+                                    <span>{post.commentsCount}</span>
+                                    <Dialog open={isCommentDialogOpen} onOpenChange={setIsCommentDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="link" size="sm">Add Comment</Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Add Your Comment</DialogTitle>
+                                                <DialogDescription>
+                                                    {isUserLoggedIn ? (
+                                                        "You are logged in. Your comment will be associated with your account."
+                                                    ) : (
+                                                        "Enter your name to comment anonymously. Your IP address will be recorded."
+                                                    )}
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <form onSubmit={commentForm.handleSubmit(onCommentSubmit)} className="space-y-4">
+                                                {!isUserLoggedIn && (
+                                                    <div>
+                                                        <label htmlFor="commentName" className="block text-sm font-medium text-gray-700">Your Name</label>
+                                                        <Input id="commentName" {...commentForm.register('name')} />
+                                                        {commentForm.formState.errors.name && (
+                                                            <p className="text-red-500 text-sm">{commentForm.formState.errors.name.message}</p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <label htmlFor="commentContent" className="block text-sm font-medium text-gray-700">Comment</label>
+                                                    <Textarea id="commentContent" {...commentForm.register('content')} />
+                                                    {commentForm.formState.errors.content && (
+                                                        <p className="text-red-500 text-sm">{commentForm.formState.errors.content.message}</p>
+                                                    )}
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button type="submit" disabled={commentForm.formState.isSubmitting}>Submit Comment</Button>
+                                                </DialogFooter>
+                                            </form>
+                                            <h3 className="text-lg font-semibold mt-4">Comments ({comments?.length || 0})</h3>
+                                            <div className="max-h-60 overflow-y-auto border rounded-md p-2">
+                                                {isCommentsLoading ? (
+                                                    <p>Loading comments...</p>
+                                                ) : commentsError ? (
+                                                    <p className="text-red-500">Error loading comments: {commentsError.message}</p>
+                                                ) : comments && comments.length > 0 ? (
+                                                    <ul>
+                                                        {comments.map((comment) => (
+                                                            <li key={comment._id} className="py-2 border-b last:border-b-0">
+                                                                <p className="text-sm font-semibold">{comment.userId?.name || comment.name || 'Anonymous'}</p>
+                                                                <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString()} (IP: {comment.userIp})</p>
+                                                                <p className="text-gray-700 mt-1">{comment.content}</p>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p>No comments yet. Be the first to comment!</p>
+                                                )}
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
 
                         <div className="flex items-center space-x-1">
                             <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
@@ -453,8 +453,8 @@ export default function PostDetailPage() {
                             <span>Report</span>
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 } 

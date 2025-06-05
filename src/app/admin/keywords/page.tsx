@@ -13,6 +13,7 @@ import { PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 interface Keyword {
   _id: string;
@@ -30,8 +31,8 @@ export default function AdminManageKeywordsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
   const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
 
@@ -41,18 +42,17 @@ export default function AdminManageKeywordsPage() {
   });
 
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have administrative privileges.',
-        variant: 'destructive',
-      });
-      router.push('/admin/login');
-    } else {
-      setIsAdmin(true);
+    if (!isAuthLoading) {
+      if (!user || user?.user.role !== 'admin') {
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have administrative privileges.',
+          variant: 'destructive',
+        });
+        router.replace('/admin/login?redirect=/admin/keywords');
+      }
     }
-  }, [router, toast]);
+  }, [user, isAuthLoading, router, toast]);
 
   const { data: keywords, isLoading, error } = useQuery<Keyword[], Error>({
     queryKey: ['adminKeywords'],
@@ -67,7 +67,7 @@ export default function AdminManageKeywordsPage() {
       }
       return res.json().then(data => data.keywords);
     },
-    enabled: isAdmin,
+    enabled: !isAuthLoading && user?.user?.role === 'admin',
   });
 
   const addKeywordMutation = useMutation({
@@ -197,8 +197,12 @@ export default function AdminManageKeywordsPage() {
     }
   };
 
-  if (!isAdmin) {
-    return <div className="flex items-center justify-center min-h-screen">Checking access...</div>;
+  if (isAuthLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+  }
+
+  if (!user || user?.user.role !== 'admin') {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">Access Denied. Redirecting...</div>;
   }
 
   if (isLoading) {

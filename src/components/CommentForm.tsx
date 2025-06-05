@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -12,7 +11,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAuth } from './providers/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { moderatePostContent } from '@/ai/flows/moderate-post-content'; // Assuming this can be used for comments too
-import { mockModerationKeywords } from '@/lib/mock-data'; // Using mock keywords for now
+import { useQuery } from '@tanstack/react-query';
+
+interface ModerationKeyword {
+  id: string;
+  keyword: string;
+}
 
 const commentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty").max(500, "Comment too long"),
@@ -35,8 +39,23 @@ const CommentForm: React.FC<CommentFormProps> = ({ postId, onCommentAdded }) => 
     resolver: zodResolver(commentSchema),
     defaultValues: {
       content: '',
-      guestName: user?.name || '',
+      guestName: user?.user.name || '',
     },
+  });
+
+  const { data: moderationKeywords, isLoading: isLoadingKeywords, error: keywordsError } = useQuery<ModerationKeyword[]>({
+    queryKey: ['moderationKeywords'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/keywords');
+      if (!res.ok) {
+        throw new Error('Failed to fetch moderation keywords');
+      }
+      const data = await res.json();
+      return data.keywords;
+    },
+    // Keywords are not critical for the form itself to render,
+    // so we can fetch them in the background and just use an empty array if not loaded
+    staleTime: Infinity,
   });
 
   const onSubmit: SubmitHandler<CommentFormData> = async (data) => {
@@ -52,28 +71,36 @@ const CommentForm: React.FC<CommentFormProps> = ({ postId, onCommentAdded }) => 
 
     try {
       // Content moderation
-      const moderationResult = await moderatePostContent({
-        postDescription: data.content, // Using postDescription field for comment content
-        keywords: mockModerationKeywords.map(k => k.keyword),
-      });
+      const keywordsToCheck = moderationKeywords?.map((k: ModerationKeyword) => k.keyword) || [];
 
-      if (!moderationResult.isSafe) {
-        isFlagged = true;
-        flaggedKeywords = moderationResult.flaggedKeywords;
-        toast({
-          title: "Comment Moderation",
-          description: `Your comment contains potentially inappropriate content (${flaggedKeywords.join(', ')}) and will be reviewed.`,
-          variant: "default",
-          duration: 5000,
+      if (keywordsToCheck.length > 0) {
+        const moderationResult = await moderatePostContent({
+          postDescription: data.content,
+          keywords: keywordsToCheck,
         });
+
+        if (!moderationResult.isSafe) {
+          isFlagged = true;
+          flaggedKeywords = moderationResult.flaggedKeywords;
+          toast({
+            title: "Comment Moderation",
+            description: `Your comment contains potentially inappropriate content (${flaggedKeywords.join(', ')}) and will be reviewed.`,
+            variant: "default",
+            duration: 5000,
+          });
+        }
+      } else if (isLoadingKeywords) {
+        console.log("Moderation keywords not yet loaded, submitting without moderation.");
+      } else if (keywordsError) {
+        console.error("Failed to load moderation keywords, submitting without moderation.", keywordsError);
       }
       
       // Simulate API call
-      console.log('Submitting comment:', { postId, userId: user?.id, ...data, isFlagged, flaggedKeywords });
+      console.log('Submitting comment:', { postId, userId: user?.user.id, ...data, isFlagged, flaggedKeywords });
       
       // Call parent callback to update UI optimistically
       onCommentAdded({ content: data.content, guestName: user ? undefined : data.guestName, isFlagged, flaggedKeywords });
-      form.reset({ content: '', guestName: user?.name || '' }); // Reset form
+      form.reset({ content: '', guestName: user?.user.name || '' }); // Reset form
       if (!isFlagged) {
         toast({ title: "Comment Added", description: "Your comment has been posted." });
       }

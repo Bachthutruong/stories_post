@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useCallback } from 'react';
@@ -12,7 +11,7 @@ interface ImageUploadPlaceholderProps {
   existingImages?: { url: string; alt: string }[];
 }
 
-const ImageUploadPlaceholder: React.FC<ImageUploadPlaceholderProps> = ({ 
+export const ImageUploadPlaceholder: React.FC<ImageUploadPlaceholderProps> = ({ 
   onFilesChange, 
   maxFiles = 5,
   existingImages = []

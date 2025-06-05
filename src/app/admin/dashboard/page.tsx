@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 interface AppStats {
   totalPosts: number;
@@ -19,21 +20,20 @@ interface AppStats {
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have administrative privileges.',
-        variant: 'destructive',
-      });
-      router.push('/admin/login'); // Redirect to login if not admin
-    } else {
-      setIsAdmin(true);
+    if (!isAuthLoading) {
+      if (!user || user?.user?.role !== 'admin') {
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have administrative privileges.',
+          variant: 'destructive',
+        });
+        router.replace('/admin/login?redirect=/admin/dashboard');
+      }
     }
-  }, [router, toast]);
+  }, [user, isAuthLoading, router, toast]);
 
   const { data: stats, isLoading: isStatsLoading, error: statsError } = useQuery<AppStats, Error>({
     queryKey: ['adminStats'],
@@ -48,11 +48,15 @@ export default function AdminDashboardPage() {
       }
       return res.json();
     },
-    enabled: isAdmin, // Only fetch if user is an admin
+    enabled: !isAuthLoading && user?.user?.role === 'admin',
   });
 
-  if (!isAdmin) {
-    return <div className="flex items-center justify-center min-h-screen">Checking access...</div>;
+  if (isAuthLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+  }
+
+  if (!user || user?.user?.role !== 'admin') {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">Access Denied. Redirecting...</div>;
   }
 
   if (isStatsLoading) {

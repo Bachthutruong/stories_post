@@ -13,10 +13,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Check, X, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/components/providers/AuthProvider';
+import useDebounce from '@/hooks/useDebounce';
 
 interface Report {
   _id: string;
-  postId: string;
+  postId: string | { _id: string };
   userId?: { // User who reported (optional, if anonymous) - populated
     _id: string;
     name: string;
@@ -41,45 +43,45 @@ export default function AdminManageReportsPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || '');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || 'all');
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isViewReportDialogOpen, setIsViewReportDialogOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have administrative privileges.',
-        variant: 'destructive',
-      });
-      router.push('/admin/login');
-    } else {
-      setIsAdmin(true);
+    if (!isAuthLoading) {
+      if (!user || user?.user.role !== 'admin') {
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have administrative privileges.',
+          variant: 'destructive',
+        });
+        router.replace('/admin/login?redirect=/admin/reports');
+      }
     }
-  }, [router, toast]);
+  }, [user, isAuthLoading, router, toast]);
 
   const buildQueryString = () => {
     const params = new URLSearchParams();
-    if (searchQuery) params.set('search', searchQuery);
-    if (filterStatus) params.set('status', filterStatus);
+    if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
+    if (filterStatus && filterStatus !== 'all') params.set('status', filterStatus);
     params.set('page', page.toString());
     return params.toString();
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (!isAuthLoading && user?.user.role === 'admin') {
       const queryString = buildQueryString();
       router.push(`/admin/reports?${queryString}`, { scroll: false });
     }
-  }, [searchQuery, filterStatus, page, isAdmin]);
+  }, [debouncedSearchQuery, filterStatus, page, user, isAuthLoading]);
 
   const { data, isLoading, error } = useQuery<AllReportsData, Error>({
-    queryKey: ['adminReports', searchQuery, filterStatus, page],
+    queryKey: ['adminReports', debouncedSearchQuery, filterStatus, page],
     queryFn: async () => {
       const queryString = buildQueryString();
       const res = await fetch(`/api/admin/reports?${queryString}`, {
@@ -92,7 +94,7 @@ export default function AdminManageReportsPage() {
       }
       return res.json();
     },
-    enabled: isAdmin,
+    enabled: !isAuthLoading && user?.user.role === 'admin',
   });
 
   const updateReportStatusMutation = useMutation({
@@ -180,8 +182,12 @@ export default function AdminManageReportsPage() {
     }
   };
 
-  if (!isAdmin) {
-    return <div className="flex items-center justify-center min-h-screen">Checking access...</div>;
+  if (isAuthLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+  }
+
+  if (!user || user?.user.role !== 'admin') {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">Access Denied. Redirecting...</div>;
   }
 
   if (isLoading) {
@@ -208,7 +214,7 @@ export default function AdminManageReportsPage() {
             <SelectValue placeholder="Filter by Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="reviewed">Reviewed</SelectItem>
             <SelectItem value="resolved">Resolved</SelectItem>
@@ -239,8 +245,8 @@ export default function AdminManageReportsPage() {
               data?.reports.map((report) => (
                 <TableRow key={report._id}>
                   <TableCell className="font-medium">
-                    <Link href={`/posts/${report.postId}`} target="_blank" className="hover:underline">
-                      {report.postId}
+                    <Link href={`/posts/${typeof report.postId === 'object' ? report.postId._id : report.postId}`} target="_blank" className="hover:underline">
+                      {typeof report.postId === 'object' ? report.postId._id : report.postId}
                     </Link>
                   </TableCell>
                   <TableCell>{report.userId?.name || report.reportedByUserName || 'Anonymous'}</TableCell>
@@ -293,7 +299,7 @@ export default function AdminManageReportsPage() {
       <Dialog open={isViewReportDialogOpen} onOpenChange={setIsViewReportDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Report Details - Post ID: {selectedReport?.postId}</DialogTitle>
+            <DialogTitle>Report Details - Post ID: {selectedReport?.postId ? (typeof selectedReport.postId === 'object' ? selectedReport.postId._id : selectedReport.postId) : 'N/A'}</DialogTitle>
             <DialogDescription>
               Details of the reported post and reason.
             </DialogDescription>
@@ -313,14 +319,14 @@ export default function AdminManageReportsPage() {
             <div>
               <p className="text-sm font-medium">Status:</p>
               <span className={`px-2 py-1 rounded-full text-sm font-semibold ${selectedReport?.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : selectedReport?.status === 'reviewed' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
-                {selectedReport?.status.charAt(0).toUpperCase() + selectedReport?.status.slice(1)}
+                {selectedReport?.status ? selectedReport.status!.charAt(0).toUpperCase() + selectedReport.status!.slice(1) : 'N/A'}
               </span>
             </div>
             <div>
               <p className="text-sm font-medium">Reported Date:</p>
               <p>{selectedReport?.createdAt ? new Date(selectedReport.createdAt).toLocaleString() : 'N/A'}</p>
             </div>
-            <Link href={`/posts/${selectedReport?.postId}`} target="_blank">
+            <Link href={`/posts/${typeof selectedReport?.postId === 'object' ? (selectedReport.postId as { _id: string })._id : selectedReport?.postId}`} target="_blank">
               <Button variant="outline" className="w-full">View Original Post</Button>
             </Link>
           </div>

@@ -38,7 +38,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, showInteractionsInitially = f
     const newComment: CommentType = {
       id: `comment-${Date.now()}`, // Mock ID
       postId: post.id,
-      userId: user?.id,
+      userId: user?.user.id,
       guestName: newCommentData.guestName,
       content: newCommentData.content,
       createdAt: new Date().toISOString(),
@@ -53,7 +53,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, showInteractionsInitially = f
     }
   };
 
-  const canEdit = user && (user.id === post.userId || user.isAdmin);
+  const canEdit = user && (user.user.id === post.userId || user?.user.role === 'admin');
 
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">

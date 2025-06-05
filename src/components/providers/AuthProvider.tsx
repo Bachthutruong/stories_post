@@ -1,13 +1,11 @@
-
 "use client";
 
 import type { AuthenticatedUser } from '@/lib/types';
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { mockUsers } from '@/lib/mock-data'; // For mock login
 
 interface AuthContextType {
   user: AuthenticatedUser;
-  login: (name: string, phone: string) => Promise<boolean>;
+  login: (name: string, phone: string) => Promise<AuthenticatedUser | false>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -33,26 +31,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (name: string, phone: string): Promise<boolean> => {
+  const login = async (name: string, phone: string): Promise<AuthenticatedUser | false> => {
     setIsLoading(true);
-    // Mock login: find user in mockUsers
-    const foundUser = mockUsers.find(u => u.name === name && u.phone === phone);
-    if (foundUser && !foundUser.isLocked) {
-      const authUser: AuthenticatedUser = { 
-        id: foundUser.id, 
-        name: foundUser.name, 
-        phone: foundUser.phone,
-        isAdmin: !!foundUser.isAdmin 
-      };
-      setUser(authUser);
-      try {
-        localStorage.setItem('hem-story-user', JSON.stringify(authUser));
-      } catch (error) {
-        console.error("Failed to save user to localStorage", error);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: name, phoneNumber: phone }),
+      });
+
+      if (response.ok) {
+        const foundUser: AuthenticatedUser = await response.json();
+        if (foundUser) {
+          setUser(foundUser);
+          try {
+            localStorage.setItem('hem-story-user', JSON.stringify(foundUser));
+          } catch (error) {
+            console.error("Failed to save user to localStorage", error);
+          }
+          setIsLoading(false);
+          return foundUser;
+        }
+      } else {
+         // Handle non-OK responses (e.g., 401 Unauthorized, 400 Bad Request)
+         // You might want to read the response body for a specific error message
+         // const errorData = await response.json();
+         console.error('Login failed with status:', response.status);
       }
-      setIsLoading(false);
-      return true;
+
+    } catch (error) {
+      console.error('Login failed due to network or other error:', error);
     }
+
     setIsLoading(false);
     return false;
   };

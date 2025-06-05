@@ -5,10 +5,12 @@ import cloudinary from '@/lib/cloudinary';
 import User from '@/models/User'; // Needed for populate
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
+    console.log("Entering GET function for post ID route.");
     await dbConnect();
 
     try {
-        const { id } = params;
+        const { id } = await params;
+        console.log("Received post ID:", id);
         const post = await Post.findById(id).populate('userId', 'name phoneNumber email');
 
         if (!post) {
@@ -19,6 +21,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     } catch (error: any) {
         console.error('Get Post by ID Error:', error);
+        console.error('Error details:', error);
         return NextResponse.json({ message: error.message || 'Something went wrong' }, { status: 500 });
     }
 }

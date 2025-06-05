@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, FileText, Users, ShieldAlert, ListFilter, Award, Settings } from 'lucide-react';
+import React from 'react';
 
 const adminNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
@@ -33,7 +34,7 @@ const AdminSidebar = () => {
             className="w-full justify-start"
           >
             <Link href={item.href} className="flex items-center space-x-2">
-              {React.cloneElement(item.icon, { className: "h-4 w-4 text-sidebar-accent"})}
+              {React.cloneElement(item.icon, { className: "h-4 w-4 text-[#2D8DD2]"})}
               <span>{item.label}</span>
             </Link>
           </Button>

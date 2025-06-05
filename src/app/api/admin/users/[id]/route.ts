@@ -45,4 +45,24 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         console.error('Delete User Error:', error);
         return NextResponse.json({ message: error.message || 'Something went wrong' }, { status: 500 });
     }
+}
+
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+    await dbConnect();
+
+    try {
+        const { id } = params;
+
+        const user = await User.findById(id);
+
+        if (!user) {
+            return NextResponse.json({ message: 'User not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(user, { status: 200 });
+
+    } catch (error: any) {
+        console.error('Get User Error:', error);
+        return NextResponse.json({ message: error.message || 'Something went wrong' }, { status: 500 });
+    }
 } 

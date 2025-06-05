@@ -51,7 +51,7 @@ export function LikeButton({ postId, initialLikes, isInitiallyLiked }: LikeButto
       // await likePostOnServer(postId, user.id); // Placeholder
     }
     // TODO: Add actual server call and error handling
-    console.log(`User ${user.id} ${isLiked ? 'unliked' : 'liked'} post ${postId}. New like status: ${!isLiked}`);
+    console.log(`User ${user.user.id} ${isLiked ? 'unliked' : 'liked'} post ${postId}. New like status: ${!isLiked}`);
   };
 
   return (
