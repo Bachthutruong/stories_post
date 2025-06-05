@@ -7,6 +7,10 @@ const KeywordSchema = new Schema({
         unique: true,
         trim: true,
     },
+    isSafe: {
+        type: Boolean,
+        default: false,
+    },
 }, { timestamps: true });
 
 export default models.Keyword || model('Keyword', KeywordSchema); 

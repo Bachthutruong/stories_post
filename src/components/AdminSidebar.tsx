@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -11,6 +10,7 @@ import React from 'react';
 const adminNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
   { href: '/admin/posts', label: 'Manage Posts', icon: <FileText /> },
+  { href: '/admin/comments', label: 'Manage Comments', icon: <FileText /> },
   { href: '/admin/users', label: 'Manage Users', icon: <Users /> },
   { href: '/admin/reports', label: 'Manage Reports', icon: <ShieldAlert /> },
   { href: '/admin/keywords', label: 'Moderation Keywords', icon: <ListFilter /> },
@@ -34,7 +34,7 @@ const AdminSidebar = () => {
             className="w-full justify-start"
           >
             <Link href={item.href} className="flex items-center space-x-2">
-              {React.cloneElement(item.icon, { className: "h-4 w-4 text-[#2D8DD2]"})}
+              {React.cloneElement(item.icon, { className: "h-4 w-4 text-[#2D8DD2]" })}
               <span>{item.label}</span>
             </Link>
           </Button>

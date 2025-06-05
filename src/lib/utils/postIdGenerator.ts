@@ -9,28 +9,25 @@ export async function generatePostId(): Promise<string> {
 
     const prefix = `${year}_${month}_${day}_${hours}_HEMUNG_`;
 
-    let counter = 0;
     let postId = '';
     let isUnique = false;
+    let attempts = 0;
 
-    while (!isUnique) {
-        const suffix = counter.toString().padStart(3, '0');
+    while (!isUnique && attempts < 10000) {
+        const randomNum = Math.floor(Math.random() * 1000);
+        const suffix = randomNum.toString().padStart(3, '0');
         postId = `${prefix}${suffix}`;
 
         const existingPost = await Post.findOne({ postId });
         if (!existingPost) {
             isUnique = true;
         }
+        attempts++;
+    }
 
-        counter = (counter + 1) % 1000; // Cycle from 000 to 999
-        if (counter === 0 && !isUnique) {
-            // If cycled through all 1000 numbers and still not unique, 
-            // it means there are 1000 posts in the current hour, which is highly unlikely.
-            // For simplicity, we'll break and return, though in a real app, 
-            // you might want to handle this more robustly (e.g., add more digits or wait).
-            console.warn("Generated 1000 post IDs in the same hour. Consider adjusting the ID generation logic.");
-            break;
-        }
+    if (!isUnique) {
+        console.warn("Could not generate a unique post ID after multiple attempts. Consider adjusting the ID generation logic.");
+        throw new Error("Failed to generate a unique Post ID.");
     }
 
     return postId;

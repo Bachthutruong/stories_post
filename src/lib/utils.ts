@@ -15,8 +15,8 @@ export function generatePostId(): string {
   const hours = now.getHours().toString().padStart(2, '0');
   // The sequential number (000-999) needs backend logic.
   // For frontend mock, we use a timestamp-based suffix for more uniqueness in mock.
-  const sequentialSuffix = (now.getTime() % 1000).toString().padStart(3, '0');
-  return `${year}_${month}_${day}_${hours}_HEMUNG_${sequentialSuffix}`;
+  const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `${year}_${month}_${day}_${hours}_HEMUNG_${randomSuffix}`;
 }
 
 export function formatDate(dateString: string | Date, dateFormat: string = 'dd/MM/yyyy'): string {

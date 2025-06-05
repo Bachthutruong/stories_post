@@ -6,6 +6,7 @@ interface IComment extends Document {
     name?: string;
     content: string;
     userIp: string;
+    status: string;
 }
 
 const CommentSchema = new Schema<IComment>({
@@ -31,6 +32,11 @@ const CommentSchema = new Schema<IComment>({
     userIp: {
         type: String,
         required: true,
+    },
+    status: {
+        type: String,
+        enum: ['approved', 'pending_review', 'rejected'],
+        default: 'pending_review',
     },
 }, { timestamps: true });
 

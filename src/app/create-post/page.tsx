@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller, ControllerRenderProps } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,18 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 import ImageUpload from '@/components/ImageUpload';
 import { useAuth } from '@/components/providers/AuthProvider';
 
-const formSchema = z.object({
-    title: z.string().min(5, { message: 'Title must be at least 5 characters.' }).max(100, { message: 'Title must be at most 100 characters.' }),
-    description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
-    // Name, Phone, Email are conditional based on login status
-    name: z.string().optional(),
-    phoneNumber: z.string().optional(),
-    email: z.string().optional(),
-    images: z.any().refine(files => files && files.length > 0, 'Image is required.'),
-});
-
-type CreatePostFormValues = z.infer<typeof formSchema>;
-
 export default function CreatePostPage() {
     const router = useRouter();
     const { toast } = useToast();
@@ -34,8 +22,43 @@ export default function CreatePostPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false); // Add loading state
 
+    // Define the formSchema dynamically inside the component
+    const currentFormSchema = useMemo(() => {
+        const baseSchema = {
+            title: z.string().min(5, { message: 'Title must be at least 5 characters.' }).max(100, { message: 'Title must be at most 100 characters.' }),
+            description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
+            images: z.any().refine(files => files && files.length > 0, 'Image is required.'),
+        };
+
+        if (user) {
+            // If logged in, name, phoneNumber, email are truly optional as they come from user data
+            return z.object({
+                ...baseSchema,
+                name: z.string().optional(),
+                phoneNumber: z.string().optional(),
+                email: z.string().optional(),
+            });
+        } else {
+            // If not logged in, name and phoneNumber are required. Email is optional but validated if present.
+            return z.object({
+                ...baseSchema,
+                name: z.string().min(2, { message: 'Name is required and must be at least 2 characters.' }),
+                phoneNumber: z.string().regex(/^\d{10,15}$/, { message: 'Phone number is required and must be 10-15 digits.' }),
+                email: z.string().optional().refine((val) => {
+                    if (val) {
+                        return z.string().email({ message: 'Invalid email address.' }).safeParse(val).success;
+                    }
+                    return true;
+                }, { message: 'Invalid email address.' }),
+            });
+        }
+    }, [user]);
+
+    // Infer the type directly from the dynamic schema
+    type CreatePostFormValues = z.infer<typeof currentFormSchema>;
+
     const form = useForm<CreatePostFormValues>({
-        resolver: zodResolver(formSchema),
+        resolver: zodResolver(currentFormSchema),
         defaultValues: {
             title: '',
             description: '',
@@ -58,37 +81,25 @@ export default function CreatePostPage() {
 
     // Set form values when user data loads
     useEffect(() => {
-        if (user) {
-            form.setValue('name', user?.user.name || '');
-            form.setValue('phoneNumber', user?.user.phoneNumber || '');
-            form.setValue('email', user?.user.email || '');
-            // Trigger validation for these fields if needed
-            // form.trigger(['name', 'phoneNumber', 'email']);
-        } else {
-             // Clear values if user logs out or is not logged in
-             form.setValue('name', '');
-             form.setValue('phoneNumber', '');
-             form.setValue('email', '');
+        const currentName = form.getValues('name');
+        const currentPhoneNumber = form.getValues('phoneNumber');
+        const currentEmail = form.getValues('email');
+
+        const newName = user?.user.name || '';
+        const newPhoneNumber = user?.user.phoneNumber || '';
+        const newEmail = user?.user.email || '';
+
+        // Only set value if it's actually different to avoid unnecessary updates
+        if (currentName !== newName) {
+            form.setValue('name', newName);
+        }
+        if (currentPhoneNumber !== newPhoneNumber) {
+            form.setValue('phoneNumber', newPhoneNumber);
+        }
+        if (currentEmail !== newEmail) {
+            form.setValue('email', newEmail);
         }
     }, [user, form]);
-
-    // Conditional validation based on user status
-    useEffect(() => {
-        if (!user) {
-            // If not logged in, make these fields required
-            form.clearErrors(['name', 'phoneNumber', 'email']); // Clear previous errors
-            form.register('name', { required: 'Name is required.', minLength: { value: 2, message: 'Name must be at least 2 characters.' } });
-            form.register('phoneNumber', { required: 'Phone number is required.', pattern: { value: /^\d{10,15}$/, message: 'Invalid phone number format.' } });
-            // Email is now optional when not logged in, but still validate format if provided
-            form.register('email', { pattern: { value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Invalid email address.' } });
-        } else {
-            // If logged in, remove required validation
-             form.unregister(['name', 'phoneNumber', 'email']);
-            form.clearErrors(['name', 'phoneNumber', 'email']);
-            
-        }
-    }, [user, form]);
-
 
     const onSubmit = async (values: CreatePostFormValues) => {
         if (!termsAccepted) {
@@ -123,8 +134,8 @@ export default function CreatePostPage() {
                 formData.append('images', values.images[i]);
             }
         } else if (values.images instanceof FileList) {
-             // Fallback for older behavior or if type assertion is off
-             for (let i = 0; i < values.images.length; i++) {
+            // Fallback for older behavior or if type assertion is off
+            for (let i = 0; i < values.images.length; i++) {
                 formData.append('images', values.images[i]);
             }
         }

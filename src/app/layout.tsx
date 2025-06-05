@@ -5,6 +5,7 @@ import { AuthProvider } from '@/components/providers/AuthProvider';
 import ReactQueryProvider from '@/components/providers/ReactQueryProvider';
 import SiteHeader from '@/components/SiteHeader';
 import Footer from '@/components/Footer';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: 'Story Post',
@@ -29,7 +30,9 @@ export default function MainLayout({
             <div className="flex flex-col min-h-screen">
               <SiteHeader />
               <main className="flex-grow container mx-auto px-4 py-8">
-                {children}
+                <Suspense fallback={<div>Loading...</div>}>
+                  {children}
+                </Suspense>
               </main>
               <Footer />
               <Toaster />

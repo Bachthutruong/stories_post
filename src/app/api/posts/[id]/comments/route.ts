@@ -2,18 +2,36 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongoose';
 import Post from '@/models/Post';
 import Comment from '@/models/Comment';
+import Keyword from '@/models/Keyword';
+
+// Helper function to check for safe keywords
+async function containsSafeKeyword(text: string): Promise<boolean> {
+    const safeKeywords = await Keyword.find({ isSafe: true });
+    const lowerCaseText = text.toLowerCase();
+    for (const keyword of safeKeywords) {
+        if (lowerCaseText.includes(keyword.word.toLowerCase())) {
+            return true;
+        }
+    }
+    return false;
+}
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
     await dbConnect();
 
     try {
-        const { id: postId } = params;
+        const postId = params.id;
         const body = await request.json();
         const { userId, name, content, userIp } = body;
 
         if (!postId || !content || (!userId && (!name || !userIp))) {
             return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
         }
+
+        // Determine comment status based on safe keywords
+        const commentStatus = (await containsSafeKeyword(content))
+            ? 'approved'
+            : 'pending_review';
 
         const post = await Post.findById(postId);
         if (!post) {
@@ -26,6 +44,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
             name,
             content,
             userIp,
+            status: commentStatus,
         });
 
         post.commentsCount += 1;
@@ -43,7 +62,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     await dbConnect();
 
     try {
-        const { id: postId } = params;
+        const postId = params.id;
 
         if (!postId) {
             return NextResponse.json({ message: 'Post ID is required' }, { status: 400 });

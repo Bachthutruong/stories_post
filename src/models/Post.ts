@@ -44,6 +44,11 @@ const PostSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    status: {
+        type: String,
+        enum: ['approved', 'pending_review', 'rejected'],
+        default: 'pending_review',
+    },
 }, { timestamps: true });
 
 export default models.Post || model('Post', PostSchema); 

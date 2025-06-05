@@ -8,13 +8,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     try {
         const { id } = params;
         const body = await request.json();
-        const { word } = body;
+        const { word, isSafe } = body;
 
         if (!word) {
             return NextResponse.json({ message: 'Keyword is required' }, { status: 400 });
         }
 
-        const updatedKeyword = await Keyword.findByIdAndUpdate(id, { word: word.toLowerCase() }, { new: true });
+        const updatedKeyword = await Keyword.findByIdAndUpdate(id, { word: word.toLowerCase(), isSafe: isSafe }, { new: true });
 
         if (!updatedKeyword) {
             return NextResponse.json({ message: 'Keyword not found' }, { status: 404 });

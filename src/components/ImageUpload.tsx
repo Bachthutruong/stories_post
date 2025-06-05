@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Input } from '@/components/ui/input'; // Assuming Input component is used
 import { XCircle } from 'lucide-react'; // Assuming lucide-react is available for an icon
 
@@ -12,63 +12,54 @@ interface ImageUploadProps {
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({ field }) => {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  // We no longer manage selectedFiles as an internal state independent of field.value
+  // const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
 
-  // Effect to initialize state from form value (if any existing files are passed)
-  // This is complex for FileList and usually not needed for typical file inputs.
-  // We focus on handling new uploads and removals.
+  // Convert field.value to a consistent array of Files for easier handling
+  const currentFiles: File[] = useMemo(() => {
+    if (Array.isArray(field.value)) {
+      return field.value;
+    } else if (field.value instanceof FileList) {
+      return Array.from(field.value);
+    }
+    return [];
+  }, [field.value]);
 
-  // Effect to generate previews whenever selectedFiles changes
+  // Effect to generate previews whenever currentFiles (derived from field.value) changes
   useEffect(() => {
-    console.log('ImageUpload: selectedFiles state updated:', selectedFiles);
-    const imageUrls = selectedFiles.map(file => URL.createObjectURL(file));
+    console.log('ImageUpload: currentFiles (from field.value) updated:', currentFiles);
+    const imageUrls = currentFiles.map(file => URL.createObjectURL(file));
     setPreviewImages(imageUrls);
 
     // Cleanup function to revoke object URLs
     return () => {
-      console.log('ImageUpload: Revoking object URLs:', imageUrls);
+      console.log('ImageUpload: Revoking object URLs for:', imageUrls.length, 'images');
       imageUrls.forEach(url => URL.revokeObjectURL(url));
     };
-  }, [selectedFiles]); // Re-run when selectedFiles changes
+  }, [currentFiles]); // Depend on currentFiles (derived from field.value)
 
-  // Report changes back to react-hook-form whenever selectedFiles updates
-  useEffect(() => {
-    // Pass the array of Files back to react-hook-form
-    // Explicitly create a new array instance just in case
-    const filesToReport = selectedFiles.length > 0 ? [...selectedFiles] : null;
-    console.log('ImageUpload: Reporting files to react-hook-form:', filesToReport);
-    field.onChange(filesToReport);
-  }, [selectedFiles, field.onChange]);
+  // Removed the useEffect that was causing the loop
 
 
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
       const newFiles = Array.from(files);
-      console.log('ImageUpload: handleFileChange: Previous files (before update):', selectedFiles);
-      console.log('ImageUpload: handleFileChange: New files selected:', newFiles);
-
-      // Use functional update form to ensure we use the latest state
-      setSelectedFiles(prevFiles => {
-        const updatedFiles = [...prevFiles, ...newFiles];
-        console.log('ImageUpload: handleFileChange: Updated files array (inside setSelectedFiles):', updatedFiles);
-        return updatedFiles;
-      });
+      const updatedFiles = [...currentFiles, ...newFiles]; // Combine with existing files
+      console.log('ImageUpload: handleFileChange: Reporting updated files to react-hook-form:', updatedFiles);
+      field.onChange(updatedFiles); // Report combined files back to react-hook-form
 
       // Clear the input value so the same file(s) can be selected again if needed
       event.target.value = '';
     }
-  }, [selectedFiles]);
+  }, [currentFiles, field.onChange]); // currentFiles and field.onChange are dependencies
 
   const handleRemoveImage = useCallback((index: number) => {
-    // Use functional update form to ensure we use the latest state
-    setSelectedFiles(prevFiles => {
-      const updatedFiles = prevFiles.filter((_, i) => i !== index);
-      console.log('ImageUpload: handleRemoveImage: Files after removal:', updatedFiles);
-      return updatedFiles;
-    });
-  }, []);
+    const updatedFiles = currentFiles.filter((_, i) => i !== index);
+    console.log('ImageUpload: handleRemoveImage: Reporting files after removal to react-hook-form:', updatedFiles);
+    field.onChange(updatedFiles.length > 0 ? updatedFiles : null); // Pass null if no files remain
+  }, [currentFiles, field.onChange]);
 
 
   return (
@@ -94,7 +85,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ field }) => {
                 aria-label="Remove image"
                 style={{ width: '24px', height: '24px', zIndex: 10 }}
               >
-                 X <XCircle size={14} />
+                X <XCircle size={14} />
               </button>
             </div>
           ))}
