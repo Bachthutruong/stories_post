@@ -9,14 +9,14 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const { phoneNumber, password } = body;
+        const { name, phoneNumber } = body;
 
-        if (!phoneNumber || !password) {
-            return NextResponse.json({ message: 'Please provide phone number and password' }, { status: 400 });
+        if (!name || !phoneNumber) {
+            return NextResponse.json({ message: 'Please provide name and phone number' }, { status: 400 });
         }
 
-        // Find user by phone number
-        const user = await User.findOne({ phoneNumber });
+        // Find user by name and phone number
+        const user = await User.findOne({ name, phoneNumber });
         if (!user) {
             return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
         }
@@ -26,13 +26,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'Your account has been locked. Please contact support.' }, { status: 403 });
         }
 
-        // Compare passwords
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
-        }
-
-        // Generate JWT token
+        // Generate JWT token (you might want to reconsider token generation if no password is used)
         const token = jwt.sign(
             { id: user._id, role: user.role },
             process.env.JWT_SECRET as string,

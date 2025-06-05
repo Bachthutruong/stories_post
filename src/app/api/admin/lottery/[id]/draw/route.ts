@@ -7,7 +7,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     await dbConnect();
 
     try {
-        const { id: lotteryId } = params;
+        const { id: lotteryId } = await params;
 
         const lottery = await Lottery.findById(lotteryId);
 

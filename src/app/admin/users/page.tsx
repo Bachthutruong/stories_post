@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { User2, Lock, Unlock } from 'lucide-react';
+import { useAuth } from '@/components/providers/AuthProvider';
+import useDebounce from '@/hooks/useDebounce';
 
 interface User {
   _id: string;
@@ -33,41 +35,41 @@ export default function AdminManageUsersPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have administrative privileges.',
-        variant: 'destructive',
-      });
-      router.push('/admin/login');
-    } else {
-      setIsAdmin(true);
+    if (!isAuthLoading) {
+      if (!user || user?.user.role !== 'admin') {
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have administrative privileges.',
+          variant: 'destructive',
+        });
+        router.replace('/admin/login?redirect=/admin/users');
+      }
     }
-  }, [router, toast]);
+  }, [user, isAuthLoading, router, toast]);
 
   const buildQueryString = () => {
     const params = new URLSearchParams();
-    if (searchQuery) params.set('search', searchQuery);
+    if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
     params.set('page', page.toString());
     return params.toString();
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (!isAuthLoading && user?.user.role === 'admin') {
       const queryString = buildQueryString();
       router.push(`/admin/users?${queryString}`, { scroll: false });
     }
-  }, [searchQuery, page, isAdmin]);
+  }, [debouncedSearchQuery, page, user, isAuthLoading]);
 
   const { data, isLoading, error } = useQuery<AllUsersData, Error>({
-    queryKey: ['adminUsers', searchQuery, page],
+    queryKey: ['adminUsers', debouncedSearchQuery, page],
     queryFn: async () => {
       const queryString = buildQueryString();
       const res = await fetch(`/api/admin/users?${queryString}`, {
@@ -80,7 +82,7 @@ export default function AdminManageUsersPage() {
       }
       return res.json();
     },
-    enabled: isAdmin,
+    enabled: !isAuthLoading && user?.user.role === 'admin',
   });
 
   const toggleLockMutation = useMutation({
@@ -122,8 +124,12 @@ export default function AdminManageUsersPage() {
     }
   };
 
-  if (!isAdmin) {
-    return <div className="flex items-center justify-center min-h-screen">Checking access...</div>;
+  if (isAuthLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+  }
+
+  if (!user || user?.user.role !== 'admin') {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">Access Denied. Redirecting...</div>;
   }
 
   if (isLoading) {

@@ -1,4 +1,4 @@
-# **App Name**: Hẻm Story
+# **App Name**: Story Post
 
 ## Core Features:
 

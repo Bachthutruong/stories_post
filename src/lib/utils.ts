@@ -19,7 +19,7 @@ export function generatePostId(): string {
   return `${year}_${month}_${day}_${hours}_HEMUNG_${sequentialSuffix}`;
 }
 
-export function formatDate(dateString: string | Date, dateFormat: string = 'PPpp'): string {
+export function formatDate(dateString: string | Date, dateFormat: string = 'dd/MM/yyyy'): string {
   try {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return format(date, dateFormat);

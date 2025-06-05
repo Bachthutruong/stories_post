@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Pencil, Trash2, Eye, EyeOff, Star } from 'lucide-react';
+import { useAuth } from '@/components/providers/AuthProvider';
+import useDebounce from '@/hooks/useDebounce';
 
 interface Post {
   _id: string;
@@ -46,50 +48,53 @@ export default function AdminManagePostsPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [filterBy, setFilterBy] = useState(searchParams.get('filterBy') || '');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [filterBy, setFilterBy] = useState(searchParams.get('filterBy') || 'none');
   const [sortOrder, setSortOrder] = useState(searchParams.get('sortOrder') || 'desc');
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [editDescription, setEditDescription] = useState('');
   const [editIsFeatured, setEditIsFeatured] = useState(false);
   const [editIsHidden, setEditIsHidden] = useState(false);
 
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [postToDeleteId, setPostToDeleteId] = useState<string | null>(null);
+
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have administrative privileges.',
-        variant: 'destructive',
-      });
-      router.push('/admin/login');
-    } else {
-      setIsAdmin(true);
+    if (!isAuthLoading) {
+      if (!user || user?.user.role !== 'admin') {
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have administrative privileges.',
+          variant: 'destructive',
+        });
+        router.replace('/admin/login?redirect=/admin/posts');
+      }
     }
-  }, [router, toast]);
+  }, [user, isAuthLoading, router, toast]);
 
   const buildQueryString = () => {
     const params = new URLSearchParams();
-    if (searchQuery) params.set('search', searchQuery);
-    if (filterBy) params.set('filterBy', filterBy);
+    if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
+    if (filterBy && filterBy !== 'none') params.set('filterBy', filterBy);
     if (sortOrder) params.set('sortOrder', sortOrder);
     params.set('page', page.toString());
     return params.toString();
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (!isAuthLoading && user?.user.role === 'admin') {
       const queryString = buildQueryString();
       router.push(`/admin/posts?${queryString}`, { scroll: false });
     }
-  }, [searchQuery, filterBy, sortOrder, page, isAdmin]);
+  }, [debouncedSearchQuery, filterBy, sortOrder, page, user, isAuthLoading]);
 
   const { data, isLoading, error } = useQuery<AllPostsData, Error>({
-    queryKey: ['adminPosts', searchQuery, filterBy, sortOrder, page],
+    queryKey: ['adminPosts', debouncedSearchQuery, filterBy, sortOrder, page],
     queryFn: async () => {
       const queryString = buildQueryString();
       const res = await fetch(`/api/admin/posts?${queryString}`, {
@@ -102,7 +107,7 @@ export default function AdminManagePostsPage() {
       }
       return res.json();
     },
-    enabled: isAdmin,
+    enabled: !isAuthLoading && user?.user.role === 'admin',
   });
 
   const updatePostMutation = useMutation({
@@ -197,13 +202,24 @@ export default function AdminManagePostsPage() {
   };
 
   const handleDeleteClick = (postId: string) => {
-    if (window.confirm('Are you sure you want to delete this post?')) {
-      deletePostMutation.mutate(postId);
+    setPostToDeleteId(postId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (postToDeleteId) {
+      deletePostMutation.mutate(postToDeleteId);
+      setIsDeleteDialogOpen(false);
+      setPostToDeleteId(null);
     }
   };
 
-  if (!isAdmin) {
-    return <div className="flex items-center justify-center min-h-screen">Checking access...</div>;
+  if (isAuthLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+  }
+
+  if (!user || user?.user.role !== 'admin') {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">Access Denied. Redirecting...</div>;
   }
 
   if (isLoading) {
@@ -230,7 +246,7 @@ export default function AdminManagePostsPage() {
             <SelectValue placeholder="Filter By" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">None</SelectItem>
+            <SelectItem value="none">None</SelectItem>
             <SelectItem value="createdAt">Time Posted</SelectItem>
             <SelectItem value="likes">Likes</SelectItem>
             <SelectItem value="shares">Shares</SelectItem>
@@ -350,6 +366,28 @@ export default function AdminManagePostsPage() {
           <DialogFooter>
             <Button type="submit" onClick={handleEditSubmit} disabled={updatePostMutation.isPending}>
               {updatePostMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Post Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deletePostMutation.isPending}
+            >
+              {deletePostMutation.isPending ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

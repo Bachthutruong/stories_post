@@ -7,7 +7,7 @@ import SiteHeader from '@/components/SiteHeader';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Hẻm Story',
+  title: 'Story Post',
   description: 'Share your stories from the alley.',
 };
 

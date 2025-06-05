@@ -12,6 +12,7 @@ import { Heart, Share2, MessageCircle } from 'lucide-react';
 interface Post {
     _id: string;
     postId: string;
+    title: string;
     description: string;
     images: { url: string; public_id: string }[];
     likes: number;
@@ -55,9 +56,9 @@ export default function HomePage() {
     }
 
     const renderPostCard = (post: Post) => (
-        <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <Card key={post._id} className="w-full max-w-sm shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
-                <CardTitle>{post.description.substring(0, 50)}...</CardTitle>
+                <CardTitle>{post.title}</CardTitle>
                 <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -100,7 +101,7 @@ export default function HomePage() {
 
             <section>
                 <Tabs defaultValue="likes" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid max-w-md mx-auto grid-cols-3">
                         <TabsTrigger value="likes">Top 6 Likes</TabsTrigger>
                         <TabsTrigger value="shares">Top 6 Shares</TabsTrigger>
                         <TabsTrigger value="comments">Top 6 Comments</TabsTrigger>

@@ -14,6 +14,7 @@ import { useFieldArray, useForm, Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Link from 'next/link';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 interface Lottery {
   _id: string;
@@ -28,6 +29,7 @@ interface Lottery {
 }
 
 const createLotteryFormSchema = z.object({
+  drawDate: z.string().min(1, { message: 'Draw date is required.' }),
   winningNumbers: z.array(z.string().regex(/^\d{3}$/, { message: 'Winning number must be 3 digits.' })).min(1, 'At least one winning number is required.'),
 });
 
@@ -37,35 +39,37 @@ export default function AdminManageLotteryPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isCreateLotteryDialogOpen, setIsCreateLotteryDialogOpen] = useState(false);
   const [isDrawResultDialogOpen, setIsDrawResultDialogOpen] = useState(false);
   const [drawnWinners, setDrawnWinners] = useState<Lottery['winners']>([]);
+  const [isConfirmDrawDialogOpen, setIsConfirmDrawDialogOpen] = useState(false);
+  const [lotteryToDrawId, setLotteryToDrawId] = useState<string | null>(null);
 
   const createLotteryForm = useForm<CreateLotteryFormValues>({
     resolver: zodResolver(createLotteryFormSchema),
-    defaultValues: { winningNumbers: [''] },
+    defaultValues: { winningNumbers: [], drawDate: '' },
   });
 
-  const { fields, append, remove } = useFieldArray<CreateLotteryFormValues>({
+  // @ts-ignore
+  const { fields, append, remove } = useFieldArray<CreateLotteryFormValues, 'winningNumbers', 'id'>({
     control: createLotteryForm.control as Control<CreateLotteryFormValues>,
     name: 'winningNumbers',
   });
 
   useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
-      toast({
-        title: 'Access Denied',
-        description: 'You do not have administrative privileges.',
-        variant: 'destructive',
-      });
-      router.push('/admin/login');
-    } else {
-      setIsAdmin(true);
+    if (!isAuthLoading) {
+      if (!user || user?.user.role !== 'admin') {
+        toast({
+          title: 'Access Denied',
+          description: 'You do not have administrative privileges.',
+          variant: 'destructive',
+        });
+        router.replace('/admin/login?redirect=/admin/lottery');
+      }
     }
-  }, [router, toast]);
+  }, [user, isAuthLoading, router, toast]);
 
   const { data: lotteries, isLoading, error } = useQuery<Lottery[], Error>({
     queryKey: ['adminLotteries'],
@@ -80,7 +84,7 @@ export default function AdminManageLotteryPage() {
       }
       return res.json().then(data => data.lotteries);
     },
-    enabled: isAdmin,
+    enabled: !isAuthLoading && user?.user.role === 'admin',
   });
 
   const createLotteryMutation = useMutation({
@@ -156,13 +160,24 @@ export default function AdminManageLotteryPage() {
   };
 
   const handleDrawLottery = (lotteryId: string) => {
-    if (window.confirm('Are you sure you want to draw winners for this lottery? This action cannot be undone.')) {
-      drawLotteryMutation.mutate(lotteryId);
+    setLotteryToDrawId(lotteryId);
+    setIsConfirmDrawDialogOpen(true);
+  };
+
+  const handleConfirmDraw = () => {
+    if (lotteryToDrawId) {
+      drawLotteryMutation.mutate(lotteryToDrawId);
+      setLotteryToDrawId(null);
+      setIsConfirmDrawDialogOpen(false);
     }
   };
 
-  if (!isAdmin) {
-    return <div className="flex items-center justify-center min-h-screen">Checking access...</div>;
+  if (isAuthLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+  }
+
+  if (!user || user?.user.role !== 'admin') {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">Access Denied. Redirecting...</div>;
   }
 
   if (isLoading) {
@@ -187,9 +202,22 @@ export default function AdminManageLotteryPage() {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Create New Lottery Program</DialogTitle>
-              <DialogDescription>Enter the winning 3-digit numbers for the lottery.</DialogDescription>
+              <DialogDescription>Enter the winning 3-digit numbers and the draw date for the lottery.</DialogDescription>
             </DialogHeader>
             <form onSubmit={createLotteryForm.handleSubmit(handleCreateLotterySubmit)} className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="drawDate" className="text-right">Draw Date</label>
+                <Input
+                  id="drawDate"
+                  type="date"
+                  className="col-span-3"
+                  {...createLotteryForm.register('drawDate')}
+                />
+              </div>
+              {createLotteryForm.formState.errors.drawDate && (
+                <p className="text-red-500 text-sm text-center">{createLotteryForm.formState.errors.drawDate.message}</p>
+              )}
+              <label className="text-left">Winning Numbers</label>
               {fields.map((field, index) => (
                 <div key={field.id} className="flex items-center gap-2">
                   <Input
@@ -306,6 +334,24 @@ export default function AdminManageLotteryPage() {
           </div>
           <DialogFooter>
             <Button onClick={() => setIsDrawResultDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Draw Dialog */}
+      <Dialog open={isConfirmDrawDialogOpen} onOpenChange={setIsConfirmDrawDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Lottery Draw</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to draw winners for this lottery? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmDrawDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleConfirmDraw} disabled={drawLotteryMutation.isPending}>
+              {drawLotteryMutation.isPending ? 'Drawing...' : 'Confirm Draw'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

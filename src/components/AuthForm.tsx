@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -11,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const loginSchema = z.object({
@@ -22,11 +21,12 @@ const loginSchema = z.object({
 type LoginFormSchema = z.infer<typeof loginSchema>;
 
 export default function AuthForm() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
+  const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
   const form = useForm<LoginFormSchema>({
     resolver: zodResolver(loginSchema),
@@ -38,16 +38,23 @@ export default function AuthForm() {
 
   const onSubmit: SubmitHandler<LoginFormSchema> = async (data) => {
     setIsLoading(true);
-    const success = await login(data.name, data.phone);
+    setRedirectPath(null);
+    const loggedInUser = await login(data.name, data.phone);
+    console.log(loggedInUser, "loggedInUser after login");
     setIsLoading(false);
 
-    if (success) {
+    if (loggedInUser) {
       toast({
         title: "Đăng nhập thành công!",
         description: `Chào mừng trở lại, ${data.name}!`,
       });
-      const redirectUrl = searchParams.get('redirect') || '/';
-      router.push(redirectUrl);
+      
+      if (loggedInUser?.user.role === 'admin') {
+        setRedirectPath('/admin/dashboard');
+      } else {
+        setRedirectPath(`/users/${loggedInUser?.user.id}`);
+      }
+
     } else {
       toast({
         title: "Đăng nhập thất bại",
@@ -56,6 +63,25 @@ export default function AuthForm() {
       });
     }
   };
+
+  useEffect(() => {
+    if (redirectPath) {
+      router.replace(redirectPath);
+    }
+  }, [redirectPath, router]);
+
+  if (redirectPath && !isLoading) {
+    return (
+      <Card className="w-full max-w-md mx-auto shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-2xl font-headline text-primary">Đang chuyển hướng...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center">Đăng nhập thành công. Vui lòng chờ...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto shadow-xl">

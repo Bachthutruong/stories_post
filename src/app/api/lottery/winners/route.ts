@@ -17,7 +17,7 @@ export async function GET(request: Request) {
             })
             .sort({ drawDate: -1 }); // Sort by most recent draw
 
-        return NextResponse.json({ completedLotteries }, { status: 200 });
+        return NextResponse.json(completedLotteries, { status: 200 });
 
     } catch (error: any) {
         console.error('Get Lottery Winners History Error:', error);

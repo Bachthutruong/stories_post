@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import ImageUploadPlaceholder from './ImageUploadPlaceholder';
+import { ImageUploadPlaceholder } from './ImageUploadPlaceholder';
 import type { Post } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import TermsDialog from './TermsDialog';
@@ -16,7 +16,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from './providers/AuthProvider';
 import { generatePostId } from '@/lib/utils'; // For mock ID
 import { moderatePostContent } from '@/ai/flows/moderate-post-content';
-import { mockModerationKeywords } from '@/lib/mock-data'; // Using mock keywords
+import { useQuery } from '@tanstack/react-query';
+
+interface ModerationKeyword {
+  id: string;
+  keyword: string;
+}
 
 const postSchema = z.object({
   userName: z.string().min(2, "Name must be at least 2 characters").max(50),
@@ -50,18 +55,31 @@ const PostForm: React.FC<PostFormProps> = ({ post, onSubmitSuccess }) => {
       userEmail: post.userEmail,
       description: post.description,
     } : {
-      userName: user?.name || '',
-      userPhone: user?.phone || '',
+      userName: user?.user.name || '',
+      userPhone: user?.user.phoneNumber || '',
       userEmail: '', // Email might not be in mock user
       description: '',
     },
   });
   
+  const { data: moderationKeywords, isLoading: isLoadingKeywords, error: keywordsError } = useQuery<ModerationKeyword[]>({ // Added error state
+    queryKey: ['moderationKeywords'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/keywords');
+      if (!res.ok) {
+        throw new Error('Failed to fetch moderation keywords');
+      }
+      const data = await res.json();
+      return data.keywords;
+    },
+    staleTime: Infinity,
+  });
+
   useEffect(() => {
     if (user && !post) { // If user is logged in and it's a new post form
       form.reset({
-        userName: user.name,
-        userPhone: user.phone,
+        userName: user.user.name,
+        userPhone: user.user.phoneNumber,
         userEmail: form.getValues('userEmail') || '', // keep email if already typed
         description: form.getValues('description'),
       });
@@ -88,20 +106,31 @@ const PostForm: React.FC<PostFormProps> = ({ post, onSubmitSuccess }) => {
     let isFlagged = false;
     let flaggedKeywords: string[] = [];
     try {
-      const moderationResult = await moderatePostContent({
-        postDescription: data.description,
-        keywords: mockModerationKeywords.map(k => k.keyword),
-      });
-      if (!moderationResult.isSafe) {
-        isFlagged = true;
-        flaggedKeywords = moderationResult.flaggedKeywords;
-        toast({
-          title: "Post Moderation",
-          description: `Your post description contains potentially inappropriate content (${flaggedKeywords.join(', ')}) and will be reviewed.`,
-          variant: "default",
-          duration: 6000,
+      // Use fetched keywords, or an empty array if still loading or error occurred
+      const keywordsToCheck = moderationKeywords?.map((k: ModerationKeyword) => k.keyword) || []; // Explicitly type k
+
+      if (keywordsToCheck.length > 0) { // Only moderate if keywords are available
+        const moderationResult = await moderatePostContent({
+          postDescription: data.description,
+          keywords: keywordsToCheck,
         });
+
+        if (!moderationResult.isSafe) {
+          isFlagged = true;
+          flaggedKeywords = moderationResult.flaggedKeywords;
+          toast({
+            title: "Post Moderation",
+            description: `Your post description contains potentially inappropriate content (${flaggedKeywords.join(', ')}) and will be reviewed.`,
+            variant: "default",
+            duration: 6000,
+          });
+        }
+      } else if (isLoadingKeywords) {
+         console.log("Moderation keywords not yet loaded, submitting without moderation.");
+      } else if (keywordsError) {
+         console.error("Failed to load moderation keywords, submitting without moderation.", keywordsError);
       }
+
     } catch (error) {
       console.error("Error during content moderation:", error);
       // Decide if submission should proceed or be blocked
@@ -115,7 +144,7 @@ const PostForm: React.FC<PostFormProps> = ({ post, onSubmitSuccess }) => {
       images: imageUrls.length > 0 ? imageUrls : post?.images || [], // Use new images or existing if not changed
       createdAt: post?.createdAt || new Date().toISOString(),
       // Mock counts, user ID
-      userId: user?.id, 
+      userId: user?.user.id, 
       likeCount: post?.likeCount || 0,
       shareCount: post?.shareCount || 0,
       commentCount: post?.commentCount || 0,

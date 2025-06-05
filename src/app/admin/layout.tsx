@@ -1,4 +1,3 @@
-
 "use client"; // Ensure this is a Client Component for hooks
 
 import React from 'react'; // Import React
@@ -16,7 +15,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!isLoading) {
-      if (!user || !user.isAdmin) {
+      if (!user || user?.user?.role !== 'admin') {
         console.log("AdminAuthGuard: User not admin or not logged in, redirecting.");
         router.push('/auth/login?redirect=/admin/dashboard');
       }
@@ -36,7 +35,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user || !user.isAdmin) {
+  if (!user || user?.user?.role !== 'admin') {
      // This state should be brief due to the useEffect redirect
     return (
       <div className="flex flex-1 justify-center items-center h-full p-8">
@@ -56,7 +55,7 @@ export default function AdminLayout({
 }) {
   return (
     <div className="flex flex-col min-h-screen">
-      <SiteHeader />
+      {/* <SiteHeader /> */}
       <div className="flex flex-1 pt-16"> {/* pt-16 to offset fixed header height */}
         <AdminAuthGuard>
           <AdminSidebar />
