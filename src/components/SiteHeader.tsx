@@ -34,7 +34,7 @@ const SiteHeader = () => {
         </Link>
 
         {/* Middle section: navItems - This will be centered */}
-        <div className="hidden md:flex justify-center items-center flex-1">
+        <div className="flex justify-center items-center flex-1">
           <nav className="flex items-center space-x-1 md:space-x-2">
             {navItems.map((item) => (
               <Button key={item.href} variant={pathname === item.href ? "secondary" : "ghost"} size="sm" asChild className="px-2 md:px-3">
