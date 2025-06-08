@@ -27,14 +27,14 @@ const SiteHeader = () => {
 
   return (
     <header className="bg-card shadow-md sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center relative">
+      <div className="container mx-auto px-4 py-3 flex items-center relative justify-end md:justify-between">
         {/* Left section: Logo */}
-        <Link href="/" className="text-2xl font-headline text-primary hover:text-primary/80 transition-colors z-10">
+        <Link href="/" className="text-2xl font-headline text-primary hover:text-primary/80 transition-colors z-10 hidden md:block">
           Story Post
         </Link>
 
         {/* Middle section: navItems - This will be centered */}
-        <div className="absolute inset-0 flex justify-center items-center">
+        <div className="hidden md:flex justify-center items-center flex-1">
           <nav className="flex items-center space-x-1 md:space-x-2">
             {navItems.map((item) => (
               <Button key={item.href} variant={pathname === item.href ? "secondary" : "ghost"} size="sm" asChild className="px-2 md:px-3">

@@ -224,14 +224,14 @@ export default function AdminCommentDetailPage({ params }: AdminCommentDetailPag
                             }
                         </span>
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-sm">
                         Comment ID: {comment._id.substring(0, 8)} - Posted on: {new Date(comment.createdAt).toLocaleDateString()}
                         <br />
                         For Post ID: <Link href={`/admin/posts/${comment.postId}`} className="text-blue-600 hover:underline">{comment.postId.substring(0, 8)}</Link>
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-gray-800 mt-2">
+                    <p className="text-sm text-gray-800 mt-2 break-words">
                         Content:
                         <span
                             dangerouslySetInnerHTML={user?.user.role === 'admin' && sensitiveKeywords
@@ -251,7 +251,7 @@ export default function AdminCommentDetailPage({ params }: AdminCommentDetailPag
                         </span>
                     </p>
                 </CardContent>
-                <CardFooter className="flex justify-end space-x-2">
+                <CardFooter className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
                     <Button variant="outline" onClick={() => {
                         if (commentData) {
                             setEditContent(commentData.content);

@@ -222,8 +222,8 @@ export default function AdminManageReportsPage() {
         </Select>
       </div>
 
-      <div className="rounded-md border shadow-sm overflow-hidden mb-8">
-        <Table>
+      <div className="max-w-[300px] md:max-w-full overflow-x-auto mb-8">
+        <Table className="min-w-[920px]">
           <TableHeader>
             <TableRow>
               <TableHead>Post ID</TableHead>
@@ -245,8 +245,8 @@ export default function AdminManageReportsPage() {
               data?.reports.map((report) => (
                 <TableRow key={report._id}>
                   <TableCell className="font-medium">
-                    <Link href={`/posts/${typeof report.postId === 'object' ? report.postId._id : report.postId}`} target="_blank" className="hover:underline">
-                      {typeof report.postId === 'object' ? report.postId._id : report.postId}
+                    <Link href={`/posts/${typeof report.postId === 'object' && report.postId ? report.postId._id : report.postId || ''}`} target="_blank" className="hover:underline">
+                      {typeof report.postId === 'object' && report.postId ? report.postId._id : report.postId || 'N/A'}
                     </Link>
                   </TableCell>
                   <TableCell>{report.userId?.name || report.reportedByUserName || 'Anonymous'}</TableCell>
@@ -299,7 +299,9 @@ export default function AdminManageReportsPage() {
       <Dialog open={isViewReportDialogOpen} onOpenChange={setIsViewReportDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Report Details - Post ID: {selectedReport?.postId ? (typeof selectedReport.postId === 'object' ? selectedReport.postId._id : selectedReport.postId) : 'N/A'}</DialogTitle>
+            <DialogTitle>
+              Report Details - Post ID: {selectedReport?.postId ? (typeof selectedReport.postId === 'object' && selectedReport.postId ? selectedReport.postId._id : selectedReport.postId) : 'N/A'}
+            </DialogTitle>
             <DialogDescription>
               Details of the reported post and reason.
             </DialogDescription>
@@ -326,7 +328,7 @@ export default function AdminManageReportsPage() {
               <p className="text-sm font-medium">Reported Date:</p>
               <p>{selectedReport?.createdAt ? new Date(selectedReport.createdAt).toLocaleString() : 'N/A'}</p>
             </div>
-            <Link href={`/posts/${typeof selectedReport?.postId === 'object' ? (selectedReport.postId as { _id: string })._id : selectedReport?.postId}`} target="_blank">
+            <Link href={`/posts/${typeof selectedReport?.postId === 'object' && selectedReport?.postId ? selectedReport.postId._id : selectedReport?.postId || ''}`} target="_blank">
               <Button variant="outline" className="w-full">View Original Post</Button>
             </Link>
           </div>

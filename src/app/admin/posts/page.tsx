@@ -235,7 +235,7 @@ export default function AdminManagePostsPage() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto">
       <h1 className="text-3xl font-bold text-center mb-8">Manage Posts</h1>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6">

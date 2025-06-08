@@ -23,7 +23,7 @@ const AdminSidebar = () => {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-sidebar text-sidebar-foreground p-4 space-y-2 border-r border-sidebar-border h-full fixed top-0 left-0 pt-[calc(theme(spacing.16)+theme(spacing.4))] md:pt-16"> {/* Adjust pt to be below header */}
+    <aside className="w-full md:w-64 bg-sidebar text-sidebar-foreground p-4 space-y-2 md:border-r md:border-sidebar-border h-full md:fixed md:top-0 md:left-0 md:pt-16"> {/* Adjust pt to be below header */}
       <h2 className="text-lg font-semibold font-headline text-sidebar-primary mb-4">Admin Panel</h2>
       <nav className="flex flex-col space-y-1">
         {adminNavItems.map((item) => (
