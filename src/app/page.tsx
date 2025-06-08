@@ -56,7 +56,7 @@ export default function HomePage() {
     }
 
     const renderPostCard = (post: Post) => (
-        <Card key={post._id} className="w-full max-w-sm shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <Card key={post._id} className="w-full max-w-sm shadow-lg border-none hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
                 <CardTitle>{post.title}</CardTitle>
                 <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
@@ -92,14 +92,14 @@ export default function HomePage() {
         <div className="container mx-auto p-4">
             <h1 className="text-3xl font-bold text-center mb-8">Welcome to Stories Post</h1>
 
-            <section className="mb-12">
-                <h2 className="text-2xl font-semibold mb-4">Featured Posts</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <section className="mb-12 md:mx-20">
+                <h2 className="text-2xl font-semibold mb-4 text-center">Featured Posts</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
                     {data?.featuredPosts.map(renderPostCard)}
                 </div>
             </section>
 
-            <section>
+            <section className="md:mx-20">
                 <Tabs defaultValue="likes" className="w-full">
                     <TabsList className="grid max-w-md mx-auto grid-cols-3">
                         <TabsTrigger value="likes">Top 6 Likes</TabsTrigger>
@@ -107,17 +107,17 @@ export default function HomePage() {
                         <TabsTrigger value="comments">Top 6 Comments</TabsTrigger>
                     </TabsList>
                     <TabsContent value="likes">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 justify-items-center">
                             {data?.topLikedPosts.map(renderPostCard)}
                         </div>
                     </TabsContent>
                     <TabsContent value="shares">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 justify-items-center">
                             {data?.topSharedPosts.map(renderPostCard)}
                         </div>
                     </TabsContent>
                     <TabsContent value="comments">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 justify-items-center">
                             {data?.topCommentedPosts.map(renderPostCard)}
                         </div>
                     </TabsContent>

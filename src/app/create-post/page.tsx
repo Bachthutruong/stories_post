@@ -183,8 +183,8 @@ export default function CreatePostPage() {
 
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-6">Create New Post</h1>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <h1 className="text-2xl font-bold mb-6 md:mx-20">Create New Post</h1>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:mx-20">
                 <div>
                     <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
                     <Input id="title" {...form.register('title')} />

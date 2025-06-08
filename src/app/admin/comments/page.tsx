@@ -16,6 +16,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import useDebounce from '@/hooks/useDebounce';
 import { highlightSensitiveKeywords } from '@/lib/utils/keywordHighlighter';
 import { truncateText } from '@/lib/utils/textUtils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface Comment {
     _id: string;
@@ -229,7 +230,7 @@ export default function AdminManageCommentsPage() {
     }
 
     return (
-        <div className="container mx-auto p-4">
+        <div className="w-full px-4 sm:px-6 md:px-8 py-4">
             <h1 className="text-3xl font-bold text-center mb-8">Manage Comments</h1>
 
             <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -237,10 +238,10 @@ export default function AdminManageCommentsPage() {
                     placeholder="Search by user name or comment content..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="md:flex-1"
+                    className="w-full md:flex-1"
                 />
                 <Select value={filterBy} onValueChange={setFilterBy}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full md:w-[180px]">
                         <SelectValue placeholder="Filter By" />
                     </SelectTrigger>
                     <SelectContent>
@@ -252,7 +253,7 @@ export default function AdminManageCommentsPage() {
                     </SelectContent>
                 </Select>
                 <Select value={sortOrder} onValueChange={setSortOrder}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full md:w-[180px]">
                         <SelectValue placeholder="Sort Order" />
                     </SelectTrigger>
                     <SelectContent>
@@ -262,38 +263,38 @@ export default function AdminManageCommentsPage() {
                 </Select>
             </div>
 
-            <div className="rounded-md border shadow-sm overflow-hidden mb-8">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comment ID</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Post ID</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User/Name</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Content</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posted At</th>
-                            <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+            <div className="max-w-[300px] md:max-w-full overflow-x-auto mb-8">
+                <Table className="min-w-[920px]">
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="px-0 py-3 sm:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[100px] text-nowrap">Comment ID</TableHead>
+                            <TableHead className="px-0 py-3 sm:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[100px] text-nowrap">Post ID</TableHead>
+                            <TableHead className="px-0 py-3 sm:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[150px] text-nowrap">User/Name</TableHead>
+                            <TableHead className="px-0 py-3 sm:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[250px] text-nowrap">Content</TableHead>
+                            <TableHead className="px-0 py-3 sm:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[120px] text-nowrap">Status</TableHead>
+                            <TableHead className="px-0 py-3 sm:px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[120px] text-nowrap">Posted At</TableHead>
+                            <TableHead className="relative px-0 py-3 sm:px-6 w-[80px] text-nowrap"><span className="sr-only">Actions</span></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {data?.comments.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">No comments found.</td>
-                            </tr>
+                            <TableRow>
+                                <TableCell colSpan={7} className="h-24 text-center text-sm text-gray-500">No comments found.</TableCell>
+                            </TableRow>
                         ) : (
                             data?.comments.map((comment) => (
-                                <tr key={comment._id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <TableRow key={comment._id}>
+                                    <TableCell className="px-0 py-4 sm:px-6 text-sm font-medium text-gray-900 break-words">
                                         <Link href={`/posts/${comment.postId}`} className="text-blue-600 hover:underline">
                                             {comment._id.substring(0, 8)}
                                         </Link>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{comment.postId.substring(0, 8)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    </TableCell>
+                                    <TableCell className="px-0 py-4 sm:px-6 text-sm text-gray-500 break-words">{comment.postId.substring(0, 8)}</TableCell>
+                                    <TableCell className="px-0 py-4 sm:px-6 text-sm text-gray-900 break-words">
                                         <div className="text-sm text-gray-900">{comment.userId?.name || comment.name || 'Anonymous'}</div>
                                         <div className="text-xs text-gray-500">{comment.userId?.phoneNumber || comment.userIp}</div>
-                                    </td>
-                                    <td className="px-6 py-4 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap text-sm text-gray-900">
+                                    </TableCell>
+                                    <TableCell className="px-0 py-4 sm:px-6 break-words">
                                         <span
                                             dangerouslySetInnerHTML={user?.user.role === 'admin' && sensitiveKeywords
                                                 ? { __html: highlightSensitiveKeywords(truncateText(comment.content || '', 150), sensitiveKeywords) }
@@ -305,26 +306,26 @@ export default function AdminManageCommentsPage() {
                                                 : null
                                             }
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    </TableCell>
+                                    <TableCell className="px-0 py-4 sm:px-6 break-words">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${comment.status === 'approved' ? 'bg-green-100 text-green-800' : comment.status === 'pending_review' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
                                             {typeof comment.status === 'string' && comment.status ? (comment.status.replace(/_/g, ' ').charAt(0).toUpperCase() + comment.status.replace(/_/g, ' ').slice(1)) : 'N/A'}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(comment.createdAt).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    </TableCell>
+                                    <TableCell className="px-0 py-4 sm:px-6 text-sm text-gray-500 break-words">{new Date(comment.createdAt).toLocaleDateString()}</TableCell>
+                                    <TableCell className="px-0 py-4 sm:px-6 flex text-right text-sm font-medium space-x-2">
                                         <Button variant="outline" size="icon" onClick={() => handleEditClick(comment)}>
                                             <Pencil className="w-4 h-4" />
                                         </Button>
                                         <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(comment._id)}>
                                             <Trash2 className="w-4 h-4" />
                                         </Button>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                </TableRow>
                             ))
                         )}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
             </div>
 
             {/* Pagination */}

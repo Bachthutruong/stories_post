@@ -153,8 +153,8 @@ export default function AdminManageUsersPage() {
         />
       </div>
 
-      <div className="rounded-md border shadow-sm overflow-hidden mb-8">
-        <Table>
+      <div className="max-w-[300px] md:max-w-full overflow-x-auto mb-8">
+        <Table className="min-w-[920px]">
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>

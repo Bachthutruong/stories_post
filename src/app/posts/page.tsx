@@ -89,7 +89,7 @@ export default function AllPostsPage() {
     };
 
     const renderPostCard = (post: Post) => (
-        <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg border-none hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
                 <CardTitle>{post.title}</CardTitle>
                 <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
@@ -125,7 +125,7 @@ export default function AllPostsPage() {
         <div className="container mx-auto p-4">
             <h1 className="text-3xl font-bold text-center mb-8">All Posts</h1>
 
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-4 mb-6 md:mx-24">
                 <Input
                     placeholder="Search by name or phone number..."
                     value={searchQuery}
@@ -155,7 +155,7 @@ export default function AllPostsPage() {
                 </Select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="md:mx-20  grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {data?.posts.map(renderPostCard)}
             </div>
 

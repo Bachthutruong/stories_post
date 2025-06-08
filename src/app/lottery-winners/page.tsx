@@ -53,7 +53,7 @@ export default function LotteryWinnersPage() {
       </div>
 
       {sortedPrograms.length > 0 ? (
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion type="single" collapsible className="md:mx-40">
           {sortedPrograms.map((program, index) => (
             <AccordionItem value={`item-${index}`} key={`${program.id}-${index}`}>
               <AccordionTrigger className="hover:no-underline">
@@ -80,12 +80,12 @@ export default function LotteryWinnersPage() {
                     {program.winners && Array.isArray(program.winners) && program.winners.length > 0 ? (
                       <div className="space-y-4">
                         {program.winners.map((winnerEntry) => (
-                           <Card key={`${program.id}-${winnerEntry._id}`} className="p-4">
-                              <CardTitle className="text-lg">{winnerEntry.userId?.name || 'Người dùng ẩn danh'}</CardTitle>
-                              <CardDescription className="text-sm">Số điện thoại: {winnerEntry.userId?.phoneNumber || 'N/A'}</CardDescription>
-                              {/* Optionally display winning post ID or link */}
-                              {/* <p className="text-sm text-muted-foreground mt-1">Winning Post ID: {winnerEntry.postId}</p> */}
-                           </Card>
+                          <Card key={`${program.id}-${winnerEntry._id}`} className="p-4">
+                            <CardTitle className="text-lg">{winnerEntry.userId?.name || 'Người dùng ẩn danh'}</CardTitle>
+                            <CardDescription className="text-sm">Số điện thoại: {winnerEntry.userId?.phoneNumber || 'N/A'}</CardDescription>
+                            {/* Optionally display winning post ID or link */}
+                            {/* <p className="text-sm text-muted-foreground mt-1">Winning Post ID: {winnerEntry.postId}</p> */}
+                          </Card>
                         ))}
                       </div>
                     ) : (
