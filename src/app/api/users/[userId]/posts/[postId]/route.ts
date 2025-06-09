@@ -19,6 +19,7 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
             const formData = await req.formData();
 
             const description = formData.get('description') as string;
+            const title = formData.get('title') as string;
             const newFiles = formData.getAll('images') as File[];
             const existingImagePublicIds = formData.getAll('existingImagePublicIds') as string[];
 
@@ -68,6 +69,7 @@ export async function PUT(request: NextRequest, { params }: { params: { userId: 
             }
 
             post.description = description || post.description;
+            post.title = title || post.title;
             post.images = updatedImages;
 
             await post.save();

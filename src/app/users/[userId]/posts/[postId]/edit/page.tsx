@@ -11,8 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
+import { Card } from '@/components/ui/card';
+import { X } from 'lucide-react';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 const formSchema = z.object({
+    title: z.string().min(5, { message: 'Tiêu đề phải có ít nhất 5 ký tự.' }).max(100, { message: 'Tiêu đề không được vượt quá 100 ký tự.' }),
     description: z.string().min(10, { message: 'Mô tả phải có ít nhất 10 ký tự.' }),
     name: z.string().min(2, { message: 'Tên phải có ít nhất 2 ký tự.' }),
     phoneNumber: z.string().regex(/^\d{10}$/, { message: 'Số điện thoại không hợp lệ.' }),
@@ -22,18 +26,26 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+interface ImageData {
+    url: string;
+    public_id: string;
+}
+
 const EditPostPage = () => {
     const router = useRouter();
     const params = useParams();
     const { userId, postId } = params;
     const { toast } = useToast();
-    const [existingImages, setExistingImages] = useState<string[]>([]);
+    const { user } = useAuth();
+    const [existingImages, setExistingImages] = useState<ImageData[]>([]);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            title: '',
             description: '',
             name: '',
             phoneNumber: '',
@@ -45,14 +57,16 @@ const EditPostPage = () => {
     useEffect(() => {
         const fetchPost = async () => {
             try {
-                const token = localStorage.getItem('token');
+                const userData = JSON.parse(localStorage.getItem('hem-story-user') || '{}');
+                const token = userData.token;
+
                 if (!token) {
                     toast({
                         title: 'Lỗi',
                         description: 'Bạn cần đăng nhập để chỉnh sửa bài đăng.',
                         variant: 'destructive',
                     });
-                    router.push('/auth/login'); // Redirect to login if no token
+                    router.push('/auth/login');
                     return;
                 }
 
@@ -61,33 +75,45 @@ const EditPostPage = () => {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                const post = response.data;
-                if (post.author.userId !== userId) {
+
+                const { post } = response.data;
+                console.log('Post data:', post);
+
+                // Kiểm tra quyền chỉnh sửa
+                if (!post || !post.userId || post.userId._id !== userId) {
                     toast({
                         title: 'Lỗi',
                         description: 'Bạn không có quyền chỉnh sửa bài đăng này.',
                         variant: 'destructive',
                     });
-                    router.push('/posts'); // Redirect if not authorized
+                    router.push('/posts');
                     return;
                 }
 
+                // Cập nhật form với dữ liệu bài đăng
                 form.reset({
-                    description: post.description,
-                    name: post.author.name,
-                    phoneNumber: post.author.phoneNumber,
-                    email: post.author.email || '',
-                    agreeTerms: true, // Assuming user agreed when creating
+                    title: post.title || '',
+                    description: post.description || '',
+                    name: post.userId?.name || user?.user.name || '',
+                    phoneNumber: post.userId?.phoneNumber || user?.user.phoneNumber || '',
+                    email: post.userId?.email || user?.user.email || '',
+                    agreeTerms: true,
                 });
-                setExistingImages(post.images);
-            } catch (error) {
+
+                // Cập nhật hình ảnh
+                if (post.images && Array.isArray(post.images)) {
+                    setExistingImages(post.images);
+                }
+
+                setLoading(false);
+            } catch (error: any) {
                 console.error('Lỗi khi tìm nạp bài đăng:', error);
+                const errorMessage = error.response?.data?.message || 'Không thể tải bài đăng.';
                 toast({
                     title: 'Lỗi',
-                    description: 'Không thể tải bài đăng.',
+                    description: errorMessage,
                     variant: 'destructive',
                 });
-            } finally {
                 setLoading(false);
             }
         };
@@ -95,18 +121,41 @@ const EditPostPage = () => {
         if (postId && userId) {
             fetchPost();
         }
-    }, [postId, userId, router, form, toast]);
+    }, [postId, userId, router, form, toast, user]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setImageFiles(Array.from(e.target.files));
+            const files = Array.from(e.target.files);
+            setImageFiles(prev => [...prev, ...files]);
         }
     };
 
+    const removeExistingImage = (index: number) => {
+        setExistingImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeNewImage = (index: number) => {
+        setImageFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
     const onSubmit = async (data: FormData) => {
-        setLoading(true);
+        setSubmitting(true);
         try {
+            const userData = JSON.parse(localStorage.getItem('hem-story-user') || '{}');
+            const token = userData.token;
+
+            if (!token) {
+                toast({
+                    title: 'Lỗi',
+                    description: 'Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.',
+                    variant: 'destructive',
+                });
+                router.push('/auth/login');
+                return;
+            }
+
             const formData = new FormData();
+            formData.append('title', data.title);
             formData.append('description', data.description);
             formData.append('name', data.name);
             formData.append('phoneNumber', data.phoneNumber);
@@ -116,16 +165,14 @@ const EditPostPage = () => {
             formData.append('agreeTerms', String(data.agreeTerms));
 
             existingImages.forEach(image => {
-                formData.append('existingImages', image);
+                formData.append('existingImagePublicIds', image.public_id);
             });
 
             imageFiles.forEach(file => {
                 formData.append('images', file);
             });
 
-            const token = localStorage.getItem('token');
-
-            await axios.put(`/api/posts/${postId}`, formData, {
+            await axios.put(`/api/users/${userId}/posts/${postId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}`,
@@ -136,84 +183,163 @@ const EditPostPage = () => {
                 title: 'Thành công',
                 description: 'Bài đăng của bạn đã được cập nhật thành công.',
             });
-            router.push(`/posts/${postId}`);
+            router.push(`/users/${userId}/posts`);
         } catch (error: any) {
             console.error('Lỗi khi cập nhật bài đăng:', error);
+            const errorMessage = error.response?.data?.message || 'Không thể cập nhật bài đăng.';
             toast({
                 title: 'Lỗi',
-                description: error.response?.data?.message || 'Không thể cập nhật bài đăng.',
+                description: errorMessage,
                 variant: 'destructive',
             });
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
     if (loading) {
-        return <div className="flex justify-center items-center h-screen">Đang tải...</div>;
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    <p className="mt-4 text-lg">Đang tải bài đăng...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-4">Chỉnh sửa bài đăng</h1>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">Mô tả</label>
-                    <Textarea id="description" {...form.register('description')} />
-                    {form.formState.errors.description && (
-                        <p className="text-red-500 text-sm mt-1">{form.formState.errors.description.message}</p>
-                    )}
-                </div>
-
-                <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">Tên</label>
-                    <Input id="name" type="text" {...form.register('name')} />
-                    {form.formState.errors.name && (
-                        <p className="text-red-500 text-sm mt-1">{form.formState.errors.name.message}</p>
-                    )}
-                </div>
-
-                <div>
-                    <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">Số điện thoại</label>
-                    <Input id="phoneNumber" type="text" {...form.register('phoneNumber')} />
-                    {form.formState.errors.phoneNumber && (
-                        <p className="text-red-500 text-sm mt-1">{form.formState.errors.phoneNumber.message}</p>
-                    )}
-                </div>
-
-                <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email (Không bắt buộc)</label>
-                    <Input id="email" type="email" {...form.register('email')} />
-                    {form.formState.errors.email && (
-                        <p className="text-red-500 text-sm mt-1">{form.formState.errors.email.message}</p>
-                    )}
-                </div>
-
-                <div>
-                    <label htmlFor="images" className="block text-sm font-medium text-gray-700">Hình ảnh</label>
-                    <Input id="images" type="file" multiple onChange={handleImageChange} accept="image/*" />
-                    <div className="mt-2 flex flex-wrap gap-2">
-                        {existingImages.map((image, index) => (
-                            <img key={index} src={image} alt={`Existing image ${index}`} className="w-24 h-24 object-cover rounded" />
-                        ))}
-                        {imageFiles.map((file, index) => (
-                            <img key={index} src={URL.createObjectURL(file)} alt={`New image ${index}`} className="w-24 h-24 object-cover rounded" />
-                        ))}
+        <div className="container mx-auto p-4 max-w-2xl">
+            <Card className="p-6">
+                <h1 className="text-2xl font-bold mb-6">Chỉnh sửa bài đăng</h1>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div>
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">Tiêu đề</label>
+                        <Input
+                            id="title"
+                            {...form.register('title')}
+                            placeholder="Nhập tiêu đề bài đăng..."
+                        />
+                        {form.formState.errors.title && (
+                            <p className="text-red-500 text-sm mt-1">{form.formState.errors.title.message}</p>
+                        )}
                     </div>
-                </div>
 
-                <div className="flex items-center space-x-2">
-                    <Checkbox id="agreeTerms" {...form.register('agreeTerms')} />
-                    <label htmlFor="agreeTerms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Tôi đồng ý với các điều khoản và điều kiện.
-                    </label>
-                </div>
-                {form.formState.errors.agreeTerms && (
-                    <p className="text-red-500 text-sm mt-1">{form.formState.errors.agreeTerms.message}</p>
-                )}
+                    <div>
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                        <Textarea
+                            id="description"
+                            {...form.register('description')}
+                            className="min-h-[100px]"
+                            placeholder="Nhập mô tả bài đăng của bạn..."
+                        />
+                        {form.formState.errors.description && (
+                            <p className="text-red-500 text-sm mt-1">{form.formState.errors.description.message}</p>
+                        )}
+                    </div>
 
-                <Button type="submit" disabled={loading}>Cập nhật bài đăng</Button>
-            </form>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Tên</label>
+                            <Input id="name" type="text" {...form.register('name')} />
+                            {form.formState.errors.name && (
+                                <p className="text-red-500 text-sm mt-1">{form.formState.errors.name.message}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                            <Input id="phoneNumber" type="text" {...form.register('phoneNumber')} />
+                            {form.formState.errors.phoneNumber && (
+                                <p className="text-red-500 text-sm mt-1">{form.formState.errors.phoneNumber.message}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <Input id="email" type="email" {...form.register('email')} />
+                        {form.formState.errors.email && (
+                            <p className="text-red-500 text-sm mt-1">{form.formState.errors.email.message}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh</label>
+                        <Input
+                            id="images"
+                            type="file"
+                            multiple
+                            onChange={handleImageChange}
+                            accept="image/*"
+                            className="cursor-pointer"
+                        />
+                        <p className="text-sm text-gray-500 mt-1">Hình ảnh hiện tại: {existingImages.length + imageFiles.length}</p>
+                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {existingImages.map((image, index) => (
+                                <div key={index} className="relative group">
+                                    <img
+                                        src={image.url}
+                                        alt={`Existing image ${index}`}
+                                        className="w-full h-32 object-cover rounded-lg"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeExistingImage(index)}
+                                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                            {imageFiles.map((file, index) => (
+                                <div key={index} className="relative group">
+                                    <img
+                                        src={URL.createObjectURL(file)}
+                                        alt={`New image ${index}`}
+                                        className="w-full h-32 object-cover rounded-lg"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeNewImage(index)}
+                                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="hidden items-center space-x-2">
+                        <Checkbox id="agreeTerms" {...form.register('agreeTerms')} />
+                        <label htmlFor="agreeTerms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            Tôi đồng ý với các điều khoản và điều kiện.
+                        </label>
+                    </div>
+                    {form.formState.errors.agreeTerms && (
+                        <p className="text-red-500 text-sm mt-1">{form.formState.errors.agreeTerms.message}</p>
+                    )}
+
+                    <div className="flex justify-end space-x-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.back()}
+                            disabled={submitting}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={submitting}
+                            className="min-w-[120px]"
+                        >
+                            {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        </Button>
+                    </div>
+                </form>
+            </Card>
         </div>
     );
 };

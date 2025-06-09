@@ -47,14 +47,14 @@ export default function UserAccountPage() {
         const errorData = await res.json();
 
         if (res.status === 404) {
-             toast({
-                title: 'Lỗi',
-                description: 'Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.',
-                variant: 'destructive',
-             });
-             router.push('/auth/login');
+          toast({
+            title: 'Lỗi',
+            description: 'Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.',
+            variant: 'destructive',
+          });
+          router.push('/auth/login');
         } else {
-             throw new Error(errorData.message || 'Failed to fetch user data');
+          throw new Error(errorData.message || 'Failed to fetch user data');
         }
 
       }
@@ -112,7 +112,7 @@ export default function UserAccountPage() {
   };
 
   if (!userId) {
-     return <div className="container mx-auto p-4 text-center">Loading user ID from URL...</div>;
+    return <div className="container mx-auto p-4 text-center">Loading user ID from URL...</div>;
   }
 
   if (isLoading) {
@@ -165,8 +165,8 @@ export default function UserAccountPage() {
           </div>
           {userData && (
             <>
-             <p className="text-sm text-gray-500">Vai trò: {userData.role}</p>
-             <p className="text-sm text-gray-500">Trạng thái: {userData.isLocked ? 'Đã khóa' : 'Hoạt động'}</p>
+              <p className="text-sm text-gray-500">Vai trò: {userData.role}</p>
+              <p className="text-sm text-gray-500">Trạng thái: {userData.isLocked ? 'Đã khóa' : 'Hoạt động'}</p>
             </>
           )}
         </CardContent>
