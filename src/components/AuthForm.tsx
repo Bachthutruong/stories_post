@@ -14,8 +14,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const loginSchema = z.object({
-  name: z.string().min(2, "Tên phải có ít nhất 2 ký tự.").max(50, "Tên quá dài."),
-  phone: z.string().regex(/^\d{10,11}$/, "Số điện thoại không hợp lệ (10-11 chữ số)."),
+  name: z.string().min(2, "姓名必須至少有2個字符。").max(50, "姓名太長。"),
+  phone: z.string().regex(/^\d{10,11}$/, "電話號碼無效（10-11位數字）。"),
 });
 
 type LoginFormSchema = z.infer<typeof loginSchema>;
@@ -45,8 +45,8 @@ export default function AuthForm() {
 
     if (loggedInUser) {
       toast({
-        title: "Đăng nhập thành công!",
-        description: `Chào mừng trở lại, ${data.name}!`,
+        title: "登入成功！",
+        description: `歡迎回來，${data.name}！`,
       });
       
       if (loggedInUser?.user.role === 'admin') {
@@ -57,8 +57,8 @@ export default function AuthForm() {
 
     } else {
       toast({
-        title: "Đăng nhập thất bại",
-        description: "Tên hoặc số điện thoại không đúng, hoặc tài khoản đã bị khóa. Vui lòng thử lại.",
+        title: "登入失敗",
+        description: "姓名或電話號碼錯誤，或帳戶已被鎖定。請重試。",
         variant: "destructive",
       });
     }
@@ -74,10 +74,10 @@ export default function AuthForm() {
     return (
       <Card className="w-full max-w-md mx-auto shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline text-primary">Đang chuyển hướng...</CardTitle>
+          <CardTitle className="text-2xl font-headline text-primary">正在轉向...</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center">Đăng nhập thành công. Vui lòng chờ...</p>
+          <p className="text-center">登入成功。請稍候...</p>
         </CardContent>
       </Card>
     );
@@ -86,9 +86,9 @@ export default function AuthForm() {
   return (
     <Card className="w-full max-w-md mx-auto shadow-xl">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline text-primary">Đăng Nhập</CardTitle>
+        <CardTitle className="text-2xl font-headline text-primary">登入</CardTitle>
         <CardDescription>
-          Sử dụng tên và số điện thoại của bạn để đăng nhập hoặc tạo tài khoản mới.
+          使用您的姓名和電話號碼登入或建立新帳戶。
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -99,9 +99,9 @@ export default function AuthForm() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tên</FormLabel>
+                  <FormLabel>姓名</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nguyễn Văn A" {...field} />
+                    <Input placeholder="李小明" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,24 +112,24 @@ export default function AuthForm() {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Số điện thoại</FormLabel>
+                  <FormLabel>電話號碼</FormLabel>
                   <FormControl>
-                    <Input type="tel" placeholder="0901234567" {...field} />
+                    <Input type="tel" placeholder="0912345678" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Đang xử lý...' : 'Đăng Nhập / Tạo Tài Khoản'}
+              {isLoading ? '處理中...' : '登入 / 建立帳戶'}
             </Button>
           </form>
         </Form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Bằng việc đăng nhập, bạn đồng ý với {' '}
+          登入即表示您同意我們的{' '}
           <Link href="/terms" className="underline hover:text-primary">
-            Điều khoản dịch vụ
-          </Link> của chúng tôi.
+            服務條款
+          </Link>。
         </p>
       </CardContent>
     </Card>

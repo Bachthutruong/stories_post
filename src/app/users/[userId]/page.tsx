@@ -48,8 +48,8 @@ export default function UserAccountPage() {
 
         if (res.status === 404) {
           toast({
-            title: 'Lỗi',
-            description: 'Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.',
+            title: '錯誤',
+            description: '找不到用戶資訊。請重新登入。',
             variant: 'destructive',
           });
           router.push('/auth/login');
@@ -84,16 +84,16 @@ export default function UserAccountPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['userAccount', userId] });
       toast({
-        title: 'Success',
-        description: data.message || 'Thông tin tài khoản đã được cập nhật.',
+        title: '成功',
+        description: data.message || '帳戶資訊已更新。',
         variant: 'default',
       });
       setIsEditing(false);
     },
     onError: (error) => {
       toast({
-        title: 'Lỗi',
-        description: error.message || 'Đã xảy ra lỗi khi cập nhật thông tin.',
+        title: '錯誤',
+        description: error.message || '更新資訊時發生錯誤。',
         variant: 'destructive',
       });
     },
@@ -112,31 +112,31 @@ export default function UserAccountPage() {
   };
 
   if (!userId) {
-    return <div className="container mx-auto p-4 text-center">Loading user ID from URL...</div>;
+    return <div className="container mx-auto p-4 text-center">正在從網址載入用戶 ID...</div>;
   }
 
   if (isLoading) {
-    return <div className="container mx-auto p-4 text-center">Đang tải thông tin người dùng...</div>;
+    return <div className="container mx-auto p-4 text-center">正在載入用戶資訊...</div>;
   }
 
   if (error) {
-    return <div className="container mx-auto p-4 text-center text-red-500">Lỗi: {error.message}</div>;
+    return <div className="container mx-auto p-4 text-center text-red-500">錯誤：{error.message}</div>;
   }
 
   if (!userData) {
-    return <div className="container mx-auto p-4 text-center">Không tìm thấy thông tin người dùng.</div>;
+    return <div className="container mx-auto p-4 text-center">找不到用戶資訊。</div>;
   }
 
   return (
     <div className="container mx-auto p-4 max-w-md">
       <Card>
         <CardHeader>
-          <CardTitle>Quản lý thông tin tài khoản</CardTitle>
-          <CardDescription>Xem và cập nhật thông tin cá nhân của bạn.</CardDescription>
+          <CardTitle>管理帳戶資訊</CardTitle>
+          <CardDescription>查看和更新您的個人資訊。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="name">Họ và tên</Label>
+            <Label htmlFor="name">姓名</Label>
             <Input
               id="name"
               value={name}
@@ -145,7 +145,7 @@ export default function UserAccountPage() {
             />
           </div>
           <div>
-            <Label htmlFor="phoneNumber">Số điện thoại</Label>
+            <Label htmlFor="phoneNumber">電話號碼</Label>
             <Input
               id="phoneNumber"
               value={phoneNumber}
@@ -154,7 +154,7 @@ export default function UserAccountPage() {
             />
           </div>
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">電子郵件</Label>
             <Input
               id="email"
               type="email"
@@ -165,8 +165,8 @@ export default function UserAccountPage() {
           </div>
           {userData && (
             <>
-              <p className="text-sm text-gray-500">Vai trò: {userData.role}</p>
-              <p className="text-sm text-gray-500">Trạng thái: {userData.isLocked ? 'Đã khóa' : 'Hoạt động'}</p>
+              <p className="text-sm text-gray-500">角色：{userData.role}</p>
+              <p className="text-sm text-gray-500">狀態：{userData.isLocked ? '已鎖定' : '正常'}</p>
             </>
           )}
         </CardContent>
@@ -180,13 +180,13 @@ export default function UserAccountPage() {
                   setPhoneNumber(userData.phoneNumber);
                   setEmail(userData.email);
                 }
-              }} disabled={updateUserMutation.isPending}>Hủy</Button>
+              }} disabled={updateUserMutation.isPending}>取消</Button>
               <Button onClick={handleSave} disabled={updateUserMutation.isPending}>
-                {updateUserMutation.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+                {updateUserMutation.isPending ? '儲存中...' : '儲存變更'}
               </Button>
             </>
           ) : (
-            <Button onClick={() => setIsEditing(true)}>Chỉnh sửa</Button>
+            <Button onClick={() => setIsEditing(true)}>編輯</Button>
           )}
         </CardFooter>
       </Card>

@@ -16,12 +16,12 @@ import { X } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 
 const formSchema = z.object({
-    title: z.string().min(5, { message: 'Tiêu đề phải có ít nhất 5 ký tự.' }).max(100, { message: 'Tiêu đề không được vượt quá 100 ký tự.' }),
-    description: z.string().min(10, { message: 'Mô tả phải có ít nhất 10 ký tự.' }),
-    name: z.string().min(2, { message: 'Tên phải có ít nhất 2 ký tự.' }),
-    phoneNumber: z.string().regex(/^\d{10}$/, { message: 'Số điện thoại không hợp lệ.' }),
-    email: z.string().email({ message: 'Email không hợp lệ.' }).optional().or(z.literal('')),
-    agreeTerms: z.boolean().refine(val => val === true, { message: 'Bạn phải đồng ý với các điều khoản và điều kiện.' }),
+    title: z.string().min(5, { message: '標題必須至少有5個字符。' }).max(100, { message: '標題不能超過100個字符。' }),
+    description: z.string().min(10, { message: '描述必須至少有10個字符。' }),
+    name: z.string().min(2, { message: '姓名必須至少有2個字符。' }),
+    phoneNumber: z.string().regex(/^\d{10}$/, { message: '電話號碼無效。' }),
+    email: z.string().email({ message: '電子郵件無效。' }).optional().or(z.literal('')),
+    agreeTerms: z.boolean().refine(val => val === true, { message: '您必須同意條款和條件。' }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -62,8 +62,8 @@ const EditPostPage = () => {
 
                 if (!token) {
                     toast({
-                        title: 'Lỗi',
-                        description: 'Bạn cần đăng nhập để chỉnh sửa bài đăng.',
+                        title: '錯誤',
+                        description: '您需要登入才能編輯貼文。',
                         variant: 'destructive',
                     });
                     router.push('/auth/login');
@@ -79,18 +79,18 @@ const EditPostPage = () => {
                 const { post } = response.data;
                 console.log('Post data:', post);
 
-                // Kiểm tra quyền chỉnh sửa
+                // 檢查編輯權限
                 if (!post || !post.userId || post.userId._id !== userId) {
                     toast({
-                        title: 'Lỗi',
-                        description: 'Bạn không có quyền chỉnh sửa bài đăng này.',
+                        title: '錯誤',
+                        description: '您沒有權限編輯此貼文。',
                         variant: 'destructive',
                     });
                     router.push('/posts');
                     return;
                 }
 
-                // Cập nhật form với dữ liệu bài đăng
+                // 用貼文資料更新表單
                 form.reset({
                     title: post.title || '',
                     description: post.description || '',
@@ -100,17 +100,17 @@ const EditPostPage = () => {
                     agreeTerms: true,
                 });
 
-                // Cập nhật hình ảnh
+                // 更新圖片
                 if (post.images && Array.isArray(post.images)) {
                     setExistingImages(post.images);
                 }
 
                 setLoading(false);
             } catch (error: any) {
-                console.error('Lỗi khi tìm nạp bài đăng:', error);
-                const errorMessage = error.response?.data?.message || 'Không thể tải bài đăng.';
+                console.error('載入貼文時發生錯誤：', error);
+                const errorMessage = error.response?.data?.message || '無法載入貼文。';
                 toast({
-                    title: 'Lỗi',
+                    title: '錯誤',
                     description: errorMessage,
                     variant: 'destructive',
                 });
@@ -146,8 +146,8 @@ const EditPostPage = () => {
 
             if (!token) {
                 toast({
-                    title: 'Lỗi',
-                    description: 'Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.',
+                    title: '錯誤',
+                    description: '您的登入會話已過期。請重新登入。',
                     variant: 'destructive',
                 });
                 router.push('/auth/login');
@@ -180,15 +180,15 @@ const EditPostPage = () => {
             });
 
             toast({
-                title: 'Thành công',
-                description: 'Bài đăng của bạn đã được cập nhật thành công.',
+                title: '成功',
+                description: '您的貼文已成功更新。',
             });
             router.push(`/users/${userId}/posts`);
         } catch (error: any) {
-            console.error('Lỗi khi cập nhật bài đăng:', error);
-            const errorMessage = error.response?.data?.message || 'Không thể cập nhật bài đăng.';
+            console.error('更新貼文時發生錯誤：', error);
+            const errorMessage = error.response?.data?.message || '無法更新貼文。';
             toast({
-                title: 'Lỗi',
+                title: '錯誤',
                 description: errorMessage,
                 variant: 'destructive',
             });
@@ -202,7 +202,7 @@ const EditPostPage = () => {
             <div className="flex justify-center items-center min-h-screen">
                 <div className="flex flex-col items-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                    <p className="mt-4 text-lg">Đang tải bài đăng...</p>
+                    <p className="mt-4 text-lg">正在載入貼文...</p>
                 </div>
             </div>
         );
@@ -211,14 +211,14 @@ const EditPostPage = () => {
     return (
         <div className="container mx-auto p-4 max-w-2xl">
             <Card className="p-6">
-                <h1 className="text-2xl font-bold mb-6">Chỉnh sửa bài đăng</h1>
+                <h1 className="text-2xl font-bold mb-6">編輯貼文</h1>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div>
-                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">Tiêu đề</label>
+                        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">標題</label>
                         <Input
                             id="title"
                             {...form.register('title')}
-                            placeholder="Nhập tiêu đề bài đăng..."
+                            placeholder="輸入貼文標題..."
                         />
                         {form.formState.errors.title && (
                             <p className="text-red-500 text-sm mt-1">{form.formState.errors.title.message}</p>
@@ -226,12 +226,12 @@ const EditPostPage = () => {
                     </div>
 
                     <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">描述</label>
                         <Textarea
                             id="description"
                             {...form.register('description')}
                             className="min-h-[100px]"
-                            placeholder="Nhập mô tả bài đăng của bạn..."
+                            placeholder="輸入您的貼文描述..."
                         />
                         {form.formState.errors.description && (
                             <p className="text-red-500 text-sm mt-1">{form.formState.errors.description.message}</p>
@@ -240,7 +240,7 @@ const EditPostPage = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Tên</label>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">姓名</label>
                             <Input id="name" type="text" {...form.register('name')} />
                             {form.formState.errors.name && (
                                 <p className="text-red-500 text-sm mt-1">{form.formState.errors.name.message}</p>
@@ -248,7 +248,7 @@ const EditPostPage = () => {
                         </div>
 
                         <div>
-                            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">電話號碼</label>
                             <Input id="phoneNumber" type="text" {...form.register('phoneNumber')} />
                             {form.formState.errors.phoneNumber && (
                                 <p className="text-red-500 text-sm mt-1">{form.formState.errors.phoneNumber.message}</p>
@@ -257,7 +257,7 @@ const EditPostPage = () => {
                     </div>
 
                     <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">電子郵件</label>
                         <Input id="email" type="email" {...form.register('email')} />
                         {form.formState.errors.email && (
                             <p className="text-red-500 text-sm mt-1">{form.formState.errors.email.message}</p>
@@ -274,7 +274,7 @@ const EditPostPage = () => {
                             accept="image/*"
                             className="cursor-pointer"
                         />
-                        <p className="text-sm text-gray-500 mt-1">目前圖片: {existingImages.length + imageFiles.length}</p>
+                        <p className="text-sm text-gray-500 mt-1">目前圖片：{existingImages.length + imageFiles.length}</p>
                         <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                             {existingImages.map((image, index) => (
                                 <div key={index} className="relative group">
@@ -314,7 +314,7 @@ const EditPostPage = () => {
                     <div className="hidden items-center space-x-2">
                         <Checkbox id="agreeTerms" {...form.register('agreeTerms')} />
                         <label htmlFor="agreeTerms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                            Tôi đồng ý với các điều khoản và điều kiện.
+                            我同意條款和條件。
                         </label>
                     </div>
                     {form.formState.errors.agreeTerms && (
@@ -328,14 +328,14 @@ const EditPostPage = () => {
                             onClick={() => router.back()}
                             disabled={submitting}
                         >
-                            Hủy
+                            取消
                         </Button>
                         <Button
                             type="submit"
                             disabled={submitting}
                             className="min-w-[120px]"
                         >
-                            {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                            {submitting ? '儲存中...' : '儲存變更'}
                         </Button>
                     </div>
                 </form>

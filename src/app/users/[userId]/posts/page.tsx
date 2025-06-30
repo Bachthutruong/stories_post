@@ -54,7 +54,7 @@ export default function UserPostsPage() {
         const errorData = await res.json();
         if (res.status === 403) {
           router.push('/auth/login');
-          throw new Error('Bạn cần đăng nhập để xem bài viết của mình');
+          throw new Error('您需要登入才能查看自己的貼文');
         }
         throw new Error(errorData.message || 'Failed to fetch user posts');
       }
@@ -80,8 +80,8 @@ export default function UserPostsPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['userPosts', userId] });
       toast({
-        title: 'Thành công',
-        description: data.message || 'Bài viết đã được xóa.',
+        title: '成功',
+        description: data.message || '貼文已刪除。',
         variant: 'default',
       });
       setDeleteDialogOpen(false);
@@ -89,8 +89,8 @@ export default function UserPostsPage() {
     },
     onError: (error) => {
       toast({
-        title: 'Lỗi',
-        description: error.message || 'Đã xảy ra lỗi khi xóa bài viết.',
+        title: '錯誤',
+        description: error.message || '刪除貼文時發生錯誤。',
         variant: 'destructive',
       });
     },
@@ -112,7 +112,7 @@ export default function UserPostsPage() {
       <div className="container mx-auto p-4 text-center">
         <div className="flex flex-col items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="mt-4 text-lg">Đang tải bài viết...</p>
+          <p className="mt-4 text-lg">正在載入貼文...</p>
         </div>
       </div>
     );
@@ -122,7 +122,7 @@ export default function UserPostsPage() {
     return (
       <div className="container mx-auto p-4 text-center">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-red-600 mb-2">Đã xảy ra lỗi</h2>
+          <h2 className="text-xl font-semibold text-red-600 mb-2">發生錯誤</h2>
           <p className="text-red-500">{error.message}</p>
         </div>
       </div>
@@ -132,12 +132,12 @@ export default function UserPostsPage() {
   if (!userPosts || userPosts.length === 0) {
     return (
       <div className="container mx-auto p-4 text-center">
-        <h1 className="text-2xl font-bold mb-4">Bài viết của tôi</h1>
-        <p className="mb-6">Bạn chưa có bài viết nào.</p>
+        <h1 className="text-2xl font-bold mb-4">我的貼文</h1>
+        <p className="mb-6">您還沒有任何貼文。</p>
         <Link href="/create-post">
           <Button className="flex items-center gap-2">
             <PlusCircle className="w-4 h-4" />
-            Tạo bài viết mới
+            建立新貼文
           </Button>
         </Link>
       </div>
@@ -147,11 +147,11 @@ export default function UserPostsPage() {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Bài viết của tôi</h1>
+        <h1 className="text-2xl font-bold">我的貼文</h1>
         <Link href="/create-post">
           <Button className="flex items-center gap-2">
             <PlusCircle className="w-4 h-4" />
-            Tạo bài viết mới
+            建立新貼文
           </Button>
         </Link>
       </div>
@@ -203,19 +203,19 @@ export default function UserPostsPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogTitle>確認刪除</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.
+              您確定要刪除此貼文嗎？此操作無法復原。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-red-500 hover:bg-red-600"
               disabled={deletePostMutation.isPending}
             >
-              {deletePostMutation.isPending ? 'Đang xóa...' : 'Xóa'}
+              {deletePostMutation.isPending ? '刪除中...' : '刪除'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
