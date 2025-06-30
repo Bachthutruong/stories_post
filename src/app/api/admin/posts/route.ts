@@ -67,23 +67,30 @@ export async function GET(request: Request) {
             sortOptions['createdAt'] = -1; // Descending
         }
 
-        // Get total number of posts matching the filter
-        const totalPosts = await Post.countDocuments(postFilter);
+        // Run both queries in parallel for better performance
+        const [posts, totalPosts] = await Promise.all([
+            Post.find(postFilter)
+                .populate('userId', 'name phoneNumber email')
+                .sort(sortOptions)
+                .skip(skip)
+                .limit(limit)
+                .lean(), // Use lean() for faster queries
+            Post.countDocuments(postFilter)
+        ]);
+
         const totalPages = Math.ceil(totalPosts / limit);
 
-        // Fetch posts with pagination, filter, and sort
-        const posts = await Post.find(postFilter)
-            .populate('userId', 'name phoneNumber email')
-            .sort(sortOptions)
-            .skip(skip)
-            .limit(limit);
-
-        return NextResponse.json({
+        const response = NextResponse.json({
             posts,
             currentPage: page,
             totalPages,
             totalPosts,
         }, { status: 200 });
+
+        // Add caching headers
+        response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=180');
+
+        return response;
 
     } catch (error: any) {
         console.error('Admin Get All Posts Error:', error);

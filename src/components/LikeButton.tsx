@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -19,6 +18,7 @@ export function LikeButton({ postId, initialLikes, isInitiallyLiked }: LikeButto
   const [likes, setLikes] = useState(initialLikes);
   const [isLiked, setIsLiked] = useState(isInitiallyLiked);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -28,30 +28,60 @@ export function LikeButton({ postId, initialLikes, isInitiallyLiked }: LikeButto
     setLikes(initialLikes);
   }, [isInitiallyLiked, initialLikes]);
 
-  const handleLike = async () => {
-    if (!user) {
-      // Prompt for guest like: In a real app, this would open a dialog to enter name.
-      // For now, we'll just simulate it or disallow.
-      // For simplicity, let's say guests can't like directly via this button yet, or they need to login.
-      toast({ title: "Login Required", description: "Please login to like posts." });
-      return;
-    }
-
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent parent link navigation
+    e.stopPropagation(); // Stop event bubbling
+    
+    if (isLoading) return;
+    
+    setIsLoading(true);
     setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 500); // Duration of animation
+    setTimeout(() => setIsAnimating(false), 500);
 
     // Optimistic update
-    if (isLiked) {
-      setLikes(prev => prev - 1);
-      setIsLiked(false);
-      // await unlikePostOnServer(postId, user.id); // Placeholder
-    } else {
-      setLikes(prev => prev + 1);
-      setIsLiked(true);
-      // await likePostOnServer(postId, user.id); // Placeholder
+    const newIsLiked = !isLiked;
+    const newLikes = newIsLiked ? likes + 1 : likes - 1;
+    setIsLiked(newIsLiked);
+    setLikes(newLikes);
+
+    try {
+      const body = user 
+        ? { userId: user.user.id }
+        : { name: 'Anonymous', userIp: '127.0.0.1' }; // Guest user fallback
+
+      const res = await fetch(`/api/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update like status');
+      }
+
+      const result = await res.json();
+      setLikes(result.likes);
+      
+      toast({
+        title: result.message,
+        description: newIsLiked ? 'You liked this post!' : 'You unliked this post.',
+      });
+    } catch (error) {
+      // Revert optimistic update on error
+      setIsLiked(isLiked);
+      setLikes(likes);
+      
+      toast({
+        title: "Error",
+        description: "Failed to update like status. Please try again.",
+        variant: "destructive"
+      });
+      console.error('Like error:', error);
+    } finally {
+      setIsLoading(false);
     }
-    // TODO: Add actual server call and error handling
-    console.log(`User ${user.user.id} ${isLiked ? 'unliked' : 'liked'} post ${postId}. New like status: ${!isLiked}`);
   };
 
   return (
@@ -59,6 +89,7 @@ export function LikeButton({ postId, initialLikes, isInitiallyLiked }: LikeButto
       variant="ghost"
       size="sm"
       onClick={handleLike}
+      disabled={isLoading}
       className={cn(
         "flex items-center space-x-1 text-muted-foreground hover:text-primary transition-colors",
         isLiked && "text-primary",

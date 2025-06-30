@@ -9,20 +9,29 @@ export async function GET(request: Request) {
     await dbConnect();
 
     try {
-        // This route would be protected by admin middleware
-        const totalPosts = await Post.countDocuments({});
-        const totalUsers = await User.countDocuments({});
-        const totalShares = (await Post.aggregate([{ $group: { _id: null, total: { $sum: '$shares' } } }]))[0]?.total || 0;
-        const totalComments = await Comment.countDocuments({});
-        const totalLikes = await Like.countDocuments({});
+        // Run all queries in parallel for better performance
+        const [totalPosts, totalUsers, totalSharesResult, totalComments, totalLikes] = await Promise.all([
+            Post.countDocuments({}),
+            User.countDocuments({}),
+            Post.aggregate([{ $group: { _id: null, total: { $sum: '$shares' } } }]),
+            Comment.countDocuments({}),
+            Like.countDocuments({})
+        ]);
 
-        return NextResponse.json({
+        const totalShares = totalSharesResult[0]?.total || 0;
+
+        const response = NextResponse.json({
             totalPosts,
             totalUsers,
             totalShares,
             totalComments,
             totalLikes,
         }, { status: 200 });
+
+        // Add caching headers
+        response.headers.set('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=300');
+
+        return response;
 
     } catch (error: any) {
         console.error('Admin Get Stats Error:', error);

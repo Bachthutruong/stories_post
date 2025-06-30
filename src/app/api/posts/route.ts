@@ -150,20 +150,28 @@ export async function GET(request: Request) {
             sort = { createdAt: sortOrder }; // Default sort by createdAt if no specific filter
         }
 
-        const posts = await Post.find(query)
-            .sort(sort)
-            .skip(skip)
-            .limit(limit)
-            .populate('userId', 'name phoneNumber email');
+        // Run both queries in parallel for better performance
+        const [posts, totalPosts] = await Promise.all([
+            Post.find(query)
+                .sort(sort)
+                .skip(skip)
+                .limit(limit)
+                .populate('userId', 'name phoneNumber email')
+                .lean(), // Use lean() for faster queries
+            Post.countDocuments(query)
+        ]);
 
-        const totalPosts = await Post.countDocuments(query);
-
-        return NextResponse.json({
+        const response = NextResponse.json({
             posts,
             currentPage: page,
             totalPages: Math.ceil(totalPosts / limit),
             totalPosts,
         }, { status: 200 });
+
+        // Add caching headers
+        response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+
+        return response;
 
     } catch (error: any) {
         console.error('Get Posts Error:', error);

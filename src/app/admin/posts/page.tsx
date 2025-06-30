@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,7 +48,30 @@ interface AllPostsData {
   totalPosts: number;
 }
 
-export default function AdminManagePostsPage() {
+// Skeleton components for loading states
+const PostCardSkeleton = () => (
+  <Card className="w-full max-w-sm mx-auto shadow-lg animate-pulse">
+    <CardHeader>
+      <Skeleton className="h-6 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-4 w-2/3" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="w-full h-48 mb-4 rounded-md" />
+      <Skeleton className="h-4 w-full mb-2" />
+      <Skeleton className="h-4 w-3/4 mb-2" />
+      <Skeleton className="h-4 w-2/3 mb-2" />
+      <Skeleton className="h-6 w-24" />
+    </CardContent>
+    <CardFooter className="flex justify-end space-x-2">
+      <Skeleton className="h-8 w-8" />
+      <Skeleton className="h-8 w-8" />
+      <Skeleton className="h-8 w-8" />
+    </CardFooter>
+  </Card>
+);
+
+const AdminManagePostsContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -61,6 +85,7 @@ export default function AdminManagePostsPage() {
       const res = await fetch('/api/admin/keywords?isSafe=false', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Cache-Control': 'no-cache',
         },
       });
       if (!res.ok) {
@@ -69,7 +94,9 @@ export default function AdminManagePostsPage() {
       const data = await res.json();
       return data.keywords.map((k: { word: string }) => k.word);
     },
-    enabled: !isAuthLoading && user?.user.role === 'admin', // Only fetch if admin
+    enabled: !isAuthLoading && user?.user?.role === 'admin',
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -82,7 +109,7 @@ export default function AdminManagePostsPage() {
 
   useEffect(() => {
     if (!isAuthLoading) {
-      if (!user || user?.user.role !== 'admin') {
+      if (!user || user?.user?.role !== 'admin') {
         toast({
           title: 'Access Denied',
           description: 'You do not have administrative privileges.',
@@ -103,7 +130,7 @@ export default function AdminManagePostsPage() {
   };
 
   useEffect(() => {
-    if (!isAuthLoading && user?.user.role === 'admin') {
+    if (!isAuthLoading && user?.user?.role === 'admin') {
       const queryString = buildQueryString();
       router.push(`/admin/posts?${queryString}`, { scroll: false });
     }
@@ -116,6 +143,7 @@ export default function AdminManagePostsPage() {
       const res = await fetch(`/api/admin/posts?${queryString}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Cache-Control': 'no-cache',
         },
       });
       if (!res.ok) {
@@ -123,7 +151,10 @@ export default function AdminManagePostsPage() {
       }
       return res.json();
     },
-    enabled: !isAuthLoading && user?.user.role === 'admin',
+    enabled: !isAuthLoading && user?.user?.role === 'admin',
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const updatePostMutation = useMutation({
@@ -201,10 +232,6 @@ export default function AdminManagePostsPage() {
     router.push(`/admin/posts/${post._id}`);
   };
 
-  const handleEditSubmit = () => {
-    // No longer needed here as editing happens on detail page
-  };
-
   const handleDeleteClick = (postId: string) => {
     setPostToDeleteId(postId);
     setIsDeleteDialogOpen(true);
@@ -219,19 +246,36 @@ export default function AdminManagePostsPage() {
   };
 
   if (isAuthLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+    return (
+      <div className="container mx-auto">
+        <Skeleton className="h-9 w-48 mx-auto mb-8" />
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <Skeleton className="h-10 md:flex-1" />
+          <Skeleton className="h-10 w-[180px]" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <PostCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  if (!user || user?.user.role !== 'admin') {
+  if (!user || user?.user?.role !== 'admin') {
     return <div className="flex items-center justify-center min-h-screen text-red-500">Access Denied. Redirecting...</div>;
   }
 
-  if (isLoading) {
-    return <div className="container mx-auto p-4 text-center">Loading posts...</div>;
-  }
-
   if (error) {
-    return <div className="container mx-auto p-4 text-center text-red-500">Error: {error.message}</div>;
+    return (
+      <div className="container mx-auto p-4">
+        <div className="text-center text-red-500 mb-4">Error: {error.message}</div>
+        <div className="text-center">
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -273,105 +317,114 @@ export default function AdminManagePostsPage() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {data?.posts.map((post) => (
-          <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg">
-            <CardHeader>
-              <CardTitle
-                dangerouslySetInnerHTML={user?.user.role === 'admin' && sensitiveKeywords
-                  ? { __html: highlightSensitiveKeywords(post.title || '', sensitiveKeywords) }
-                  : undefined
-                }
-              >
-                {user?.user.role !== 'admin' || !sensitiveKeywords
-                  ? post.title
-                  : null
-                }
-              </CardTitle>
-              <CardDescription>
-                <span
-                  dangerouslySetInnerHTML={user?.user.role === 'admin' && sensitiveKeywords
-                    ? { __html: highlightSensitiveKeywords(`By ${post.userId?.name || 'Anonymous'} (${post.userId?.phoneNumber || ''})`, sensitiveKeywords) }
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <PostCardSkeleton key={index} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {data?.posts.map((post) => (
+            <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle
+                  dangerouslySetInnerHTML={user?.user?.role === 'admin' && sensitiveKeywords
+                    ? { __html: highlightSensitiveKeywords(post.title || '', sensitiveKeywords) }
                     : undefined
                   }
                 >
-                  {user?.user.role !== 'admin' || !sensitiveKeywords
-                    ? `By ${post.userId?.name || 'Anonymous'} (${post.userId?.phoneNumber || ''})`
+                  {user?.user?.role !== 'admin' || !sensitiveKeywords
+                    ? post.title
                     : null
                   }
-                </span>
-                <br />
-                Post ID: {post.postId} - {new Date(post.createdAt).toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {post.images && post.images.length > 0 && (
-                <div className="relative w-full h-48 mb-4 rounded-md overflow-hidden">
-                  <Image
-                    src={post.images[0].url}
-                    alt={post.description}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                </div>
-              )}
-              <p className="text-sm text-gray-600 mb-2">Likes: {post.likes}, Shares: {post.shares}, Comments: {post.commentsCount}</p>
-              <p className="text-sm text-gray-600 mb-2">Featured: {post.isFeatured ? 'Yes' : 'No'}, Hidden: {post.isHidden ? 'Yes' : 'No'}</p>
-              <p className="text-sm text-gray-800 mt-2">
-                <span
-                  dangerouslySetInnerHTML={user?.user.role === 'admin' && sensitiveKeywords
-                    ? { __html: highlightSensitiveKeywords(truncateText(post.description || '', 150), sensitiveKeywords) }
-                    : undefined
-                  }
-                >
-                  {user?.user.role !== 'admin' || !sensitiveKeywords
-                    ? truncateText(post.description, 150)
-                    : null
-                  }
-                </span>
-              </p>
-              <p className="text-sm text-gray-800 mt-2">
-                Status: <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${post.status === 'approved' ? 'bg-green-100 text-green-800' : post.status === 'pending_review' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                  {typeof post.status === 'string' && post.status ? (post.status.replace(/_/g, ' ').charAt(0).toUpperCase() + post.status.replace(/_/g, ' ').slice(1)) : 'N/A'}
-                </span>
-              </p>
-            </CardContent>
-            <CardFooter className="flex justify-end space-x-2">
-              <Button variant="outline" size="icon" onClick={() => handleEditClick(post)}>
-                <Pencil className="w-4 h-4" />
-              </Button>
-              <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(post._id)}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-              <Link href={`/admin/posts/${post._id}`}>
-                <Button variant="outline" size="icon"><Eye className="w-4 h-4" /></Button>
-              </Link>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+                </CardTitle>
+                <CardDescription>
+                  <span
+                    dangerouslySetInnerHTML={user?.user?.role === 'admin' && sensitiveKeywords
+                      ? { __html: highlightSensitiveKeywords(`By ${post.userId?.name || 'Anonymous'} (${post.userId?.phoneNumber || ''})`, sensitiveKeywords) }
+                      : undefined
+                    }
+                  >
+                    {user?.user?.role !== 'admin' || !sensitiveKeywords
+                      ? `By ${post.userId?.name || 'Anonymous'} (${post.userId?.phoneNumber || ''})`
+                      : null
+                    }
+                  </span>
+                  <br />
+                  Post ID: {post.postId} - {new Date(post.createdAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {post.images && post.images.length > 0 && (
+                  <div className="relative w-full h-48 mb-4 rounded-md overflow-hidden">
+                    <Image
+                      src={post.images[0].url}
+                      alt={post.description}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+                <p className="text-sm text-gray-600 mb-2">Likes: {post.likes}, Shares: {post.shares}, Comments: {post.commentsCount}</p>
+                <p className="text-sm text-gray-600 mb-2">Featured: {post.isFeatured ? 'Yes' : 'No'}, Hidden: {post.isHidden ? 'Yes' : 'No'}</p>
+                <p className="text-sm text-gray-800 mt-2">
+                  <span
+                    dangerouslySetInnerHTML={user?.user?.role === 'admin' && sensitiveKeywords
+                      ? { __html: highlightSensitiveKeywords(truncateText(post.description || '', 150), sensitiveKeywords) }
+                      : undefined
+                    }
+                  >
+                    {user?.user?.role !== 'admin' || !sensitiveKeywords
+                      ? truncateText(post.description, 150)
+                      : null
+                    }
+                  </span>
+                </p>
+                <p className="text-sm text-gray-800 mt-2">
+                  Status: <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${post.status === 'approved' ? 'bg-green-100 text-green-800' : post.status === 'pending_review' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                    {typeof post.status === 'string' && post.status ? (post.status.replace(/_/g, ' ').charAt(0).toUpperCase() + post.status.replace(/_/g, ' ').slice(1)) : 'N/A'}
+                  </span>
+                </p>
+              </CardContent>
+              <CardFooter className="flex justify-end space-x-2">
+                <Button variant="outline" size="icon" onClick={() => handleEditClick(post)}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button variant="destructive" size="icon" onClick={() => handleDeleteClick(post._id)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+                <Link href={`/admin/posts/${post._id}`} prefetch={true}>
+                  <Button variant="outline" size="icon"><Eye className="w-4 h-4" /></Button>
+                </Link>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      <div className="flex justify-center items-center space-x-4">
-        <Button
-          onClick={() => handlePageChange(page - 1)}
-          disabled={page <= 1}
-          variant="outline"
-        >
-          Previous
-        </Button>
-        <span className="text-sm">Page {data?.currentPage} of {data?.totalPages}</span>
-        <Button
-          onClick={() => handlePageChange(page + 1)}
-          disabled={page >= (data?.totalPages || 1)}
-          variant="outline"
-        >
-          Next
-        </Button>
-      </div>
+      {!isLoading && (
+        <div className="flex justify-center items-center space-x-4">
+          <Button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page <= 1}
+            variant="outline"
+          >
+            Previous
+          </Button>
+          <span className="text-sm">Page {data?.currentPage} of {data?.totalPages}</span>
+          <Button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page >= (data?.totalPages || 1)}
+            variant="outline"
+          >
+            Next
+          </Button>
+        </div>
+      )}
 
-      {/* Edit Post Dialog */}
-      {/* This dialog is no longer needed as editing is moved to the detail page */}
       {/* Delete Post Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
@@ -394,5 +447,27 @@ export default function AdminManagePostsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+export default function AdminManagePostsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto">
+        <Skeleton className="h-9 w-48 mx-auto mb-8" />
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <Skeleton className="h-10 md:flex-1" />
+          <Skeleton className="h-10 w-[180px]" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <PostCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    }>
+      <AdminManagePostsContent />
+    </Suspense>
   );
 }

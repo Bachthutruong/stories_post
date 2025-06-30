@@ -51,4 +51,12 @@ const PostSchema = new Schema({
     },
 }, { timestamps: true });
 
+// Add indexes for better query performance
+PostSchema.index({ isHidden: 1, likes: -1, createdAt: -1 });
+PostSchema.index({ isHidden: 1, shares: -1, createdAt: -1 });
+PostSchema.index({ isHidden: 1, commentsCount: -1, createdAt: -1 });
+PostSchema.index({ isFeatured: 1, isHidden: 1, createdAt: -1 });
+PostSchema.index({ postId: 1 }, { unique: true });
+PostSchema.index({ userId: 1 });
+
 export default models.Post || model('Post', PostSchema); 

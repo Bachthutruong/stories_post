@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
@@ -9,7 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, Share2, MessageCircle } from 'lucide-react';
+import { LikeButton } from '@/components/LikeButton';
+import { ShareButton } from '@/components/ui/share-button';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useToast } from '@/hooks/use-toast';
 import useDebounce from '@/hooks/useDebounce';
 
 interface Post {
@@ -38,9 +43,33 @@ interface AllPostsData {
     totalPosts: number;
 }
 
-export default function AllPostsPage() {
+// Skeleton component for loading states
+const PostCardSkeleton = () => (
+    <Card className="w-full max-w-sm mx-auto shadow-lg border-none animate-pulse h-full flex flex-col">
+        <CardHeader>
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+        </CardHeader>
+        <CardContent className="flex-grow">
+            <Skeleton className="w-full h-48 mb-4 rounded-md" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-2/3" />
+        </CardContent>
+        <CardFooter className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-6 w-12" />
+            </div>
+        </CardFooter>
+    </Card>
+);
+
+const AllPostsContent = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { user } = useAuth();
+    const { toast } = useToast();
 
     const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -66,21 +95,38 @@ export default function AllPostsPage() {
         queryKey: ['allPosts', debouncedSearchQuery, filterBy, sortOrder, page],
         queryFn: async () => {
             const queryString = buildQueryString();
-            const res = await fetch(`/api/posts?${queryString}`);
+            const res = await fetch(`/api/posts?${queryString}`, {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                },
+            });
             if (!res.ok) {
                 throw new Error('Failed to fetch posts');
             }
             return res.json();
         },
+        staleTime: 30 * 1000, // 30 seconds
+        gcTime: 2 * 60 * 1000, // 2 minutes
+        refetchOnWindowFocus: false,
     });
 
-    if (isLoading) {
-        return <div className="container mx-auto p-4 text-center">Loading posts...</div>;
-    }
-
-    if (error) {
-        return <div className="container mx-auto p-4 text-center text-red-500">Error: {error.message}</div>;
-    }
+    const handleShareClick = async (postId: string) => {
+        try {
+            const res = await fetch(`/api/posts/${postId}/share`, {
+                method: 'POST',
+            });
+            if (!res.ok) {
+                throw new Error('Failed to update share count');
+            }
+            const result = await res.json();
+            toast({
+                title: 'Shared!',
+                description: result.message,
+            });
+        } catch (error) {
+            console.error('Share error:', error);
+        }
+    };
 
     const handlePageChange = (newPage: number) => {
         if (newPage > 0 && newPage <= (data?.totalPages || 1)) {
@@ -89,37 +135,75 @@ export default function AllPostsPage() {
     };
 
     const renderPostCard = (post: Post) => (
-        <Card key={post._id} className="w-full max-w-sm mx-auto shadow-lg border-none hover:shadow-xl transition-shadow duration-300">
-            <CardHeader>
-                <CardTitle>{post.title}</CardTitle>
-                <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {post.images && post.images.length > 0 && (
-                    <div className="relative w-full h-48 mb-4 rounded-md overflow-hidden">
-                        <Image
-                            src={post.images[0].url}
-                            alt={post.description}
-                            fill
-                            style={{ objectFit: 'cover' }}
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        <Link href={`/posts/${post._id}`} key={post._id} className="block w-full max-w-sm mx-auto h-full">
+            <Card className="shadow-lg border-none hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 h-full flex flex-col">
+                <CardHeader>
+                    <CardTitle className="text-lg">{post.title}</CardTitle>
+                    <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                    {post.images && post.images.length > 0 && (
+                        <div className="relative w-full h-48 mb-4 rounded-md overflow-hidden">
+                            <Image
+                                src={post.images[0].url}
+                                alt={post.description}
+                                fill
+                                style={{ objectFit: 'cover' }}
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                priority={false}
+                                loading="lazy"
+                            />
+                        </div>
+                    )}
+                    <p className="text-sm text-gray-600 line-clamp-3 overflow-hidden">
+                        {post.description.length > 100 ? `${post.description.substring(0, 100)}...` : post.description}
+                    </p>
+                </CardContent>
+                <CardFooter 
+                    className="flex justify-between items-center"
+                    onClick={(e) => e.preventDefault()} // Prevent card click when interacting with buttons
+                >
+                    <div className="flex items-center space-x-2">
+                        <LikeButton 
+                            postId={post._id} 
+                            initialLikes={post.likes} 
+                            isInitiallyLiked={false} // TODO: Check actual like status based on user
                         />
+                        <div onClick={(e) => e.stopPropagation()} className="flex items-center space-x-1">
+                            <ShareButton
+                                url={`/posts/${post._id}`}
+                                title={post.title}
+                                description={post.description}
+                                variant="ghost"
+                                size="sm"
+                                showText={false}
+                                onShare={() => handleShareClick(post._id)}
+                            />
+                            <span className="text-sm text-muted-foreground">{post.shares}</span>
+                        </div>
+                        <div onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="sm" className="flex items-center space-x-1 text-muted-foreground">
+                                <MessageCircle className="w-4 h-4" />
+                                <span>{post.commentsCount}</span>
+                            </Button>
+                        </div>
                     </div>
-                )}
-                <p className="text-sm text-gray-600">{post.description.substring(0, 100)}...</p>
-            </CardContent>
-            <CardFooter className="flex justify-between items-center">
-                <div className="flex items-center space-x-4">
-                    <span className="flex items-center"><Heart className="w-4 h-4 mr-1" /> {post.likes}</span>
-                    <span className="flex items-center"><Share2 className="w-4 h-4 mr-1" /> {post.shares}</span>
-                    <span className="flex items-center"><MessageCircle className="w-4 h-4 mr-1" /> {post.commentsCount}</span>
-                </div>
-                <Link href={`/posts/${post._id}`}>
-                    <Button variant="outline" size="sm">View</Button>
-                </Link>
-            </CardFooter>
-        </Card>
+                </CardFooter>
+            </Card>
+        </Link>
     );
+
+    const renderSkeletonGrid = () => (
+        <div className="md:mx-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 auto-rows-fr">
+            {Array.from({ length: 9 }).map((_, index) => (
+                <PostCardSkeleton key={index} />
+            ))}
+        </div>
+    );
+
+    if (error) {
+        return <div className="container mx-auto p-4 text-center text-red-500">Error: {error.message}</div>;
+    }
 
     return (
         <div className="container mx-auto p-4">
@@ -155,27 +239,55 @@ export default function AllPostsPage() {
                 </Select>
             </div>
 
-            <div className="md:mx-20  grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {data?.posts.map(renderPostCard)}
-            </div>
+            {isLoading ? (
+                renderSkeletonGrid()
+            ) : (
+                <div className="md:mx-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 auto-rows-fr">
+                    {data?.posts?.map(renderPostCard)}
+                </div>
+            )}
 
-            <div className="flex justify-center items-center space-x-4">
-                <Button
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={page <= 1}
-                    variant="outline"
-                >
-                    Previous
-                </Button>
-                <span className="text-sm">Page {data?.currentPage} of {data?.totalPages}</span>
-                <Button
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={page >= (data?.totalPages || 1)}
-                    variant="outline"
-                >
-                    Next
-                </Button>
-            </div>
+            {!isLoading && (
+                <div className="flex justify-center items-center space-x-4">
+                    <Button
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page <= 1}
+                        variant="outline"
+                    >
+                        Previous
+                    </Button>
+                    <span className="text-sm">Page {data?.currentPage} of {data?.totalPages}</span>
+                    <Button
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page >= (data?.totalPages || 1)}
+                        variant="outline"
+                    >
+                        Next
+                    </Button>
+                </div>
+            )}
         </div>
+    );
+};
+
+export default function AllPostsPage() {
+    return (
+        <Suspense fallback={
+            <div className="container mx-auto p-4">
+                <h1 className="text-3xl font-bold text-center mb-8">All Posts</h1>
+                <div className="flex flex-col md:flex-row gap-4 mb-6 md:mx-24">
+                    <Skeleton className="h-10 md:flex-1" />
+                    <Skeleton className="h-10 w-[180px]" />
+                    <Skeleton className="h-10 w-[180px]" />
+                </div>
+                <div className="md:mx-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 auto-rows-fr">
+                    {Array.from({ length: 9 }).map((_, index) => (
+                        <PostCardSkeleton key={index} />
+                    ))}
+                </div>
+            </div>
+        }>
+            <AllPostsContent />
+        </Suspense>
     );
 } 

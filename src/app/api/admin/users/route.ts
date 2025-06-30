@@ -27,21 +27,27 @@ export async function GET(request: Request) {
             };
         }
 
-        // Fetch users with pagination and search filter
-        const users = await User.find(query)
-            .select('-password') // Exclude password from results
-            .skip(skip)
-            .limit(limit);
+        // Run both queries in parallel for better performance
+        const [users, totalUsers] = await Promise.all([
+            User.find(query)
+                .select('-password') // Exclude password from results
+                .skip(skip)
+                .limit(limit)
+                .lean(), // Use lean() for faster queries
+            User.countDocuments(query)
+        ]);
 
-        // Get the total count of users matching the search filter (for pagination)
-        const totalUsers = await User.countDocuments(query);
-
-        return NextResponse.json({
+        const response = NextResponse.json({
             users,
             currentPage: page,
             totalPages: Math.ceil(totalUsers / limit),
             totalUsers,
         }, { status: 200 });
+
+        // Add caching headers
+        response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=180');
+
+        return response;
 
     } catch (error: any) {
         console.error('Get All Users Error:', error);

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { User2, Lock, Unlock } from 'lucide-react';
@@ -30,7 +31,37 @@ interface AllUsersData {
   totalUsers: number;
 }
 
-export default function AdminManageUsersPage() {
+// Skeleton component for loading states
+const UserTableSkeleton = () => (
+  <div className="max-w-[300px] md:max-w-full overflow-x-auto mb-8">
+    <Table className="min-w-[920px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Phone Number</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Role</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {Array.from({ length: 5 }).map((_, index) => (
+          <TableRow key={index}>
+            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+            <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+            <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+);
+
+const AdminManageUsersContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -43,7 +74,7 @@ export default function AdminManageUsersPage() {
 
   useEffect(() => {
     if (!isAuthLoading) {
-      if (!user || user?.user.role !== 'admin') {
+      if (!user || user?.user?.role !== 'admin') {
         toast({
           title: 'Access Denied',
           description: 'You do not have administrative privileges.',
@@ -62,7 +93,7 @@ export default function AdminManageUsersPage() {
   };
 
   useEffect(() => {
-    if (!isAuthLoading && user?.user.role === 'admin') {
+    if (!isAuthLoading && user?.user?.role === 'admin') {
       const queryString = buildQueryString();
       router.push(`/admin/users?${queryString}`, { scroll: false });
     }
@@ -75,6 +106,7 @@ export default function AdminManageUsersPage() {
       const res = await fetch(`/api/admin/users?${queryString}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Cache-Control': 'no-cache',
         },
       });
       if (!res.ok) {
@@ -82,7 +114,10 @@ export default function AdminManageUsersPage() {
       }
       return res.json();
     },
-    enabled: !isAuthLoading && user?.user.role === 'admin',
+    enabled: !isAuthLoading && user?.user?.role === 'admin',
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const toggleLockMutation = useMutation({
@@ -125,19 +160,30 @@ export default function AdminManageUsersPage() {
   };
 
   if (isAuthLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading authentication...</div>;
+    return (
+      <div className="container mx-auto p-4">
+        <Skeleton className="h-9 w-48 mx-auto mb-8" />
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <Skeleton className="h-10 md:flex-1" />
+        </div>
+        <UserTableSkeleton />
+      </div>
+    );
   }
 
-  if (!user || user?.user.role !== 'admin') {
+  if (!user || user?.user?.role !== 'admin') {
     return <div className="flex items-center justify-center min-h-screen text-red-500">Access Denied. Redirecting...</div>;
   }
 
-  if (isLoading) {
-    return <div className="container mx-auto p-4 text-center">Loading users...</div>;
-  }
-
   if (error) {
-    return <div className="container mx-auto p-4 text-center text-red-500">Error: {error.message}</div>;
+    return (
+      <div className="container mx-auto p-4">
+        <div className="text-center text-red-500 mb-4">Error: {error.message}</div>
+        <div className="text-center">
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -153,72 +199,99 @@ export default function AdminManageUsersPage() {
         />
       </div>
 
-      <div className="max-w-[300px] md:max-w-full overflow-x-auto mb-8">
-        <Table className="min-w-[920px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Phone Number</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.users.length === 0 ? (
+      {isLoading ? (
+        <UserTableSkeleton />
+      ) : (
+        <div className="max-w-[300px] md:max-w-full overflow-x-auto mb-8">
+          <Table className="min-w-[920px]">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  No users found.
-                </TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Phone Number</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              data?.users.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.phoneNumber}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.isLocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                      {user.isLocked ? 'Locked' : 'Active'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => toggleLockMutation.mutate(user)}
-                      disabled={toggleLockMutation.isPending}
-                    >
-                      {user.isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                    </Button>
+            </TableHeader>
+            <TableBody>
+              {data?.users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No users found.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : (
+                data?.users.map((user) => (
+                  <TableRow key={user._id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.phoneNumber}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {user.role}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.isLocked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                        {user.isLocked ? 'Locked' : 'Active'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => toggleLockMutation.mutate(user)}
+                        disabled={toggleLockMutation.isPending}
+                        className="transition-all duration-200"
+                      >
+                        {user.isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      <div className="flex justify-center items-center space-x-4">
-        <Button
-          onClick={() => handlePageChange(page - 1)}
-          disabled={page <= 1}
-          variant="outline"
-        >
-          Previous
-        </Button>
-        <span className="text-sm">Page {data?.currentPage} of {data?.totalPages}</span>
-        <Button
-          onClick={() => handlePageChange(page + 1)}
-          disabled={page >= (data?.totalPages || 1)}
-          variant="outline"
-        >
-          Next
-        </Button>
-      </div>
+      {!isLoading && (
+        <div className="flex justify-center items-center space-x-4">
+          <Button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page <= 1}
+            variant="outline"
+          >
+            Previous
+          </Button>
+          <span className="text-sm">Page {data?.currentPage} of {data?.totalPages}</span>
+          <Button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page >= (data?.totalPages || 1)}
+            variant="outline"
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
+  );
+};
+
+export default function AdminManageUsersPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto p-4">
+        <Skeleton className="h-9 w-48 mx-auto mb-8" />
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <Skeleton className="h-10 md:flex-1" />
+        </div>
+        <UserTableSkeleton />
+      </div>
+    }>
+      <AdminManageUsersContent />
+    </Suspense>
   );
 }
 
