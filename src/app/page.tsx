@@ -13,6 +13,7 @@ import { LikeButton } from '@/components/LikeButton';
 import { ShareButton } from '@/components/ui/share-button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import { generatePostLuckyNumber } from '@/hooks/useLuckyNumber';
 
 interface Post {
     _id: string;
@@ -42,7 +43,7 @@ interface HomePageData {
 
 // Skeleton component for loading states
 const PostCardSkeleton = () => (
-    <Card className="w-full max-w-sm shadow-lg border-none animate-pulse h-full flex flex-col">
+    <Card className="w-full max-w-sm shadow-lg border-none animate-pulse h-full flex flex-col relative">
         <CardHeader>
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
@@ -104,7 +105,11 @@ const HomePageContent = () => {
 
     const renderPostCard = (post: Post) => (
         <Link href={`/posts/${post._id}`} key={post._id} className="block w-full max-w-sm h-full">
-            <Card className="shadow-lg border-none hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 h-full flex flex-col">
+            <Card className="shadow-lg border-none hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 h-full flex flex-col relative">
+                {/* Lucky Number */}
+                <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                    {generatePostLuckyNumber(post._id)}
+                </div>
                 <CardHeader>
                     <CardTitle className="text-lg">{post.title}</CardTitle>
                     <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
@@ -175,10 +180,10 @@ const HomePageContent = () => {
 
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-3xl font-bold text-center mb-8">Welcome to Stories Post</h1>
+            <h1 className="text-3xl font-bold text-center mb-8">歡迎來到希望夢想卡</h1>
 
             <section className="mb-12 md:mx-20">
-                <h2 className="text-2xl font-semibold mb-4 text-center">Featured Posts</h2>
+                <h2 className="text-2xl font-semibold mb-4 text-center">精選夢想卡</h2>
                 {isLoading ? (
                     renderSkeletonGrid()
                 ) : (
@@ -191,9 +196,9 @@ const HomePageContent = () => {
             <section className="md:mx-20">
                 <Tabs defaultValue="likes" className="w-full">
                     <TabsList className="grid max-w-md mx-auto grid-cols-3">
-                        <TabsTrigger value="likes">Top 6 Likes</TabsTrigger>
-                        <TabsTrigger value="shares">Top 6 Shares</TabsTrigger>
-                        <TabsTrigger value="comments">Top 6 Comments</TabsTrigger>
+                        <TabsTrigger value="likes">按讚最多</TabsTrigger>
+                        <TabsTrigger value="shares">分享最多</TabsTrigger>
+                        <TabsTrigger value="comments">評論最多</TabsTrigger>
                     </TabsList>
                     <TabsContent value="likes">
                         {isLoading ? (
@@ -232,9 +237,9 @@ export default function HomePage() {
     return (
         <Suspense fallback={
             <div className="container mx-auto p-4">
-                <h1 className="text-3xl font-bold text-center mb-8">Welcome to Stories Post</h1>
+                <h1 className="text-3xl font-bold text-center mb-8">歡迎來到希望夢想卡</h1>
                                  <section className="mb-12 md:mx-20">
-                     <h2 className="text-2xl font-semibold mb-4 text-center">Featured Posts</h2>
+                     <h2 className="text-2xl font-semibold mb-4 text-center">精選夢想卡</h2>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center auto-rows-fr">
                          {Array.from({ length: 6 }).map((_, index) => (
                              <PostCardSkeleton key={index} />

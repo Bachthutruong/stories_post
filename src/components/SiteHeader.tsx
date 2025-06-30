@@ -36,10 +36,10 @@ const SiteHeader = () => {
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/', label: 'Home', icon: <Home /> },
-    { href: '/posts', label: 'All Stories', icon: <Newspaper /> },
-    { href: '/create-post', label: 'Create Story', icon: <PlusCircle /> },
-    { href: '/lottery-winners', label: 'Lottery Winners', icon: <Trophy /> },
+    { href: '/', label: '首頁', icon: <Home /> },
+    { href: '/posts', label: '所有夢想卡', icon: <Newspaper /> },
+    { href: '/create-post', label: '上傳夢想卡', icon: <PlusCircle /> },
+    { href: '/lottery-winners', label: '幸運卡友', icon: <Trophy /> },
   ];
 
   const userNavItems = user ? [
@@ -62,7 +62,7 @@ const SiteHeader = () => {
           className="text-2xl font-headline text-primary hover:text-primary/80 transition-colors duration-200 z-10 hidden md:block"
           prefetch={true}
         >
-          Story Post
+          希望夢想牆
         </Link>
 
         {/* Middle section: navItems - This will be centered */}
@@ -136,12 +136,13 @@ const SiteHeader = () => {
               </Popover>
             </>
           ) : (
-            <Button variant="default" size="sm" asChild className="px-2 md:px-3 transition-all duration-200">
-              <Link href="/auth/login" className="flex items-center space-x-1" prefetch={true}>
-                <LogIn className="h-4 w-4" />
-                <span className="hidden md:inline">Login</span>
-              </Link>
-            </Button>
+            // <Button variant="default" size="sm" asChild className="px-2 md:px-3 transition-all duration-200">
+            //   <Link href="/auth/login" className="flex items-center space-x-1" prefetch={true}>
+            //     <LogIn className="h-4 w-4" />
+            //     <span className="hidden md:inline">Login</span>
+            //   </Link>
+            // </Button>
+            <></>
           )}
         </div>
       </div>

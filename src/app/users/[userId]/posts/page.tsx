@@ -178,7 +178,7 @@ export default function UserPostsPage() {
             </CardContent>
             <CardFooter className="flex justify-between items-center">
               <div className="text-sm text-gray-500">
-                {post.likes} Likes • {post.commentsCount} Comments • {post.shares} Shares
+                {post.likes} 按讚 • {post.commentsCount} 評論 • {post.shares} 分享
               </div>
               <div className="flex gap-2">
                 <Link href={`/users/${userId}/posts/${post._id}/edit`} passHref>

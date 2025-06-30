@@ -13,43 +13,43 @@
     --popover: 210 30% 96%;
     --popover-foreground: 210 20% 25%;
 
-    --primary: 205 65% 50%; /* Steel Blue */
+    --primary: 158 86% 28%; /* Dark Green #0A875A */
     --primary-foreground: 0 0% 100%; /* White */
 
-    --secondary: 190 50% 75%; /* Soft Cyan-Blue */
-    --secondary-foreground: 210 20% 25%; /* Dark Slate Blue */
+    --secondary: 158 50% 85%; /* Light Green complement */
+    --secondary-foreground: 158 50% 15%; /* Dark Green for text */
 
-    --muted: 210 30% 90%; /* Muted Blue-Gray */
-    --muted-foreground: 210 20% 45%; /* Muted Slate Blue */
+    --muted: 158 15% 90%; /* Muted Green-Gray */
+    --muted-foreground: 158 20% 45%; /* Muted Green */
 
-    --accent: 45 100% 60%; /* Golden Yellow */
-    --accent-foreground: 30 10% 15%; /* Dark Brown for contrast on Yellow */
+    --accent: 38 100% 60%; /* Warm Orange complement */
+    --accent-foreground: 38 50% 15%; /* Dark Orange for contrast */
 
     --destructive: 0 70% 55%; /* Slightly softer red */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 210 25% 85%;
-    --input: 210 25% 92%;
-    --ring: 205 65% 55%; /* Primary focus ring */
+    --border: 158 15% 85%;
+    --input: 158 15% 92%;
+    --ring: 158 86% 35%; /* Primary focus ring */
 
     --radius: 0.5rem;
 
     /* Sidebar specific colors */
-    --sidebar-background: 210 25% 92%; /* Slightly darker blue-gray for sidebar */
+    --sidebar-background: 158 15% 92%; /* Slightly darker green-gray for sidebar */
     --sidebar-foreground: var(--foreground);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
     --sidebar-accent: var(--accent);
     --sidebar-accent-foreground: var(--accent-foreground);
-    --sidebar-border: 210 20% 80%;
+    --sidebar-border: 158 15% 80%;
     --sidebar-ring: var(--ring);
 
      /* Chart colors */
-    --chart-1: 205 65% 60%; /* Primary variant */
-    --chart-2: 45 100% 70%; /* Accent variant */
-    --chart-3: 170 50% 50%; /* Teal */
-    --chart-4: 30 70% 60%; /* Coral/Orange */
-    --chart-5: 240 50% 65%; /* Lavender */
+    --chart-1: 158 86% 35%; /* Primary variant */
+    --chart-2: 38 100% 70%; /* Accent variant */
+    --chart-3: 180 50% 50%; /* Teal */
+    --chart-4: 25 70% 60%; /* Coral/Orange */
+    --chart-5: 280 50% 65%; /* Purple */
   }
 }
 

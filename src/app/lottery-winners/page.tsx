@@ -48,8 +48,8 @@ export default function LotteryWinnersPage() {
     <div className="container mx-auto py-8 space-y-8">
       <div className="text-center">
         <Award className="h-16 w-16 text-primary mx-auto mb-4" />
-        <h1 className="text-4xl font-headline text-primary">Lottery Winners Circle</h1>
-        <p className="text-muted-foreground mt-2">Congratulations to all our lucky winners!</p>
+        <h1 className="text-4xl font-headline text-primary">得獎者名單</h1>
+        <p className="text-muted-foreground mt-2">恭喜所有幸運得獎者！</p>
       </div>
 
       {sortedPrograms.length > 0 ? (
@@ -61,11 +61,11 @@ export default function LotteryWinnersPage() {
                   <div className="text-left">
                     <h2 className="text-xl font-semibold text-primary">{program.name}</h2>
                     <p className="text-sm text-muted-foreground flex items-center">
-                      <CalendarDays className="h-4 w-4 mr-1.5" /> Drawn on: {formatDate(program.drawDate)}
+                      <CalendarDays className="h-4 w-4 mr-1.5" /> 開獎日期: {formatDate(program.drawDate)}
                     </p>
                   </div>
                   <Badge variant={program.winners && Array.isArray(program.winners) && program.winners.length > 0 ? "default" : "outline"}>
-                    {program.winners && Array.isArray(program.winners) ? program.winners.length : 0} Winner(s)
+                    {program.winners && Array.isArray(program.winners) ? program.winners.length : 0} 得獎者
                   </Badge>
                 </div>
               </AccordionTrigger>
@@ -73,7 +73,7 @@ export default function LotteryWinnersPage() {
                 <Card className="mt-2 shadow-inner">
                   <CardHeader>
                     <CardDescription>
-                      Winning Numbers for this draw: {program.winningNumbers.map(num => <Badge key={num} variant="secondary" className="mr-1 text-lg p-1">{num}</Badge>)}
+                      開獎號碼: {program.winningNumbers.map(num => <Badge key={num} variant="secondary" className="mr-1 text-lg p-1">{num}</Badge>)}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -81,15 +81,15 @@ export default function LotteryWinnersPage() {
                       <div className="space-y-4">
                         {program.winners.map((winnerEntry) => (
                           <Card key={`${program.id}-${winnerEntry._id}`} className="p-4">
-                            <CardTitle className="text-lg">{winnerEntry.userId?.name || 'Người dùng ẩn danh'}</CardTitle>
-                            <CardDescription className="text-sm">Số điện thoại: {winnerEntry.userId?.phoneNumber || 'N/A'}</CardDescription>
+                            <CardTitle className="text-lg">{winnerEntry.userId?.name || '匿名'}</CardTitle>
+                            <CardDescription className="text-sm">電話: {winnerEntry.userId?.phoneNumber || 'N/A'}</CardDescription>
                             {/* Optionally display winning post ID or link */}
                             {/* <p className="text-sm text-muted-foreground mt-1">Winning Post ID: {winnerEntry.postId}</p> */}
                           </Card>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground text-center py-6">Chưa có người trúng thưởng nào cho chương trình này.</p>
+                      <p className="text-muted-foreground text-center py-6">目前還沒有任何得獎者。</p>
                     )}
                   </CardContent>
                 </Card>
@@ -101,8 +101,8 @@ export default function LotteryWinnersPage() {
         <Card className="text-center py-12">
           <CardContent>
             <Award className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-xl text-muted-foreground">No lottery programs have been run yet.</p>
-            <p className="text-sm text-muted-foreground mt-1">Check back later for winner announcements!</p>
+            <p className="text-xl text-muted-foreground">目前還沒有任何得獎者。</p>
+            <p className="text-sm text-muted-foreground mt-1">請稍後再回來查看得獎者名單！</p>
           </CardContent>
         </Card>
       )}

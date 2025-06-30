@@ -302,7 +302,7 @@ export default function AdminPostDetailPage({ params }: AdminPostDetailPageProps
                             )}
                         </div>
                     )}
-                    <p className="text-sm text-gray-600 mb-2">Likes: {post.likes}, Shares: {post.shares}, Comments: {post.commentsCount}</p>
+                    <p className="text-sm text-gray-600 mb-2">按讚: {post.likes}, Shares: {post.shares}, 評論: {post.commentsCount}</p>
                     <p className="text-sm text-gray-600 mb-2">Featured: {post.isFeatured ? 'Yes' : 'No'}, Hidden: {post.isHidden ? 'Yes' : 'No'}</p>
                     <p className="text-sm text-gray-800 mt-2">
                         <span

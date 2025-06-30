@@ -296,11 +296,11 @@ const AdminManageCommentsContent = () => {
                 />
                 <Select value={filterBy} onValueChange={setFilterBy}>
                     <SelectTrigger className="w-full md:w-[180px]">
-                        <SelectValue placeholder="Filter By" />
+                        <SelectValue placeholder="篩選" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="createdAt">Time Posted</SelectItem>
+                        <SelectItem value="none">無篩選</SelectItem>
+                        <SelectItem value="createdAt">上傳時間</SelectItem>
                         <SelectItem value="pending_review">Pending Review</SelectItem>
                         <SelectItem value="approved">Approved</SelectItem>
                         <SelectItem value="rejected">Rejected</SelectItem>

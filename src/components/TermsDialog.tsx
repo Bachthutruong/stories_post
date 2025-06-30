@@ -32,11 +32,11 @@ const TermsDialog: React.FC<TermsDialogProps> = ({ isOpen, onOpenChange, onAgree
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-4 max-h-60 overflow-y-auto text-sm">
-          <p><strong>1. Content Ownership:</strong> You retain ownership of the content you post. By posting, you grant Story Post a license to display and distribute your content.</p>
+          <p><strong>1. Content Ownership:</strong> You retain ownership of the content you post. By posting, you grant 希望夢想牆 a license to display and distribute your content.</p>
           <p><strong>2. Prohibited Content:</strong> Do not post content that is illegal, offensive, defamatory, or infringes on intellectual property rights.</p>
           <p><strong>3. Community Guidelines:</strong> Respect other users. No harassment or hate speech will be tolerated.</p>
-          <p><strong>4. Data Usage:</strong> Your provided information (name, phone, email) will be used for account creation and communication related to Story Post. We respect your privacy.</p>
-          <p><strong>5. Moderation:</strong> Story Post reserves the right to moderate or remove content that violates these terms or community guidelines.</p>
+          <p><strong>4. Data Usage:</strong> Your provided information (name, phone, email) will be used for account creation and communication related to 希望夢想牆. We respect your privacy.</p>
+          <p><strong>5. Moderation:</strong> 希望夢想牆 reserves the right to moderate or remove content that violates these terms or community guidelines.</p>
         </div>
         <div className="flex items-center space-x-2 mb-4">
           <Checkbox id="terms" checked={agreed} onCheckedChange={(checked) => setAgreed(checked as boolean)} />

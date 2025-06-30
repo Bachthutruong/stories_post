@@ -265,7 +265,7 @@ const EditPostPage = () => {
                     </div>
 
                     <div>
-                        <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-2">Hình ảnh</label>
+                        <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-2">圖片</label>
                         <Input
                             id="images"
                             type="file"
@@ -274,7 +274,7 @@ const EditPostPage = () => {
                             accept="image/*"
                             className="cursor-pointer"
                         />
-                        <p className="text-sm text-gray-500 mt-1">Hình ảnh hiện tại: {existingImages.length + imageFiles.length}</p>
+                        <p className="text-sm text-gray-500 mt-1">目前圖片: {existingImages.length + imageFiles.length}</p>
                         <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                             {existingImages.map((image, index) => (
                                 <div key={index} className="relative group">

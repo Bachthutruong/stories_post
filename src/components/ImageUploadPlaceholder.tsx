@@ -25,7 +25,7 @@ export const ImageUploadPlaceholder: React.FC<ImageUploadPlaceholderProps> = ({
       const totalFiles = files.length + newFilesArray.length;
       
       if (totalFiles > maxFiles) {
-        alert(`You can only upload a maximum of ${maxFiles} images.`);
+        alert(`您最多只能上傳 ${maxFiles} 張圖片。`);
         return;
       }
       
@@ -79,10 +79,10 @@ export const ImageUploadPlaceholder: React.FC<ImageUploadPlaceholderProps> = ({
         <label htmlFor={inputId} className="cursor-pointer">
           <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
           <p className="mt-2 text-sm text-muted-foreground">
-            Drag & drop images here, or click to select files
+            拖放圖片到此處，或點擊選擇檔案
           </p>
           <p className="text-xs text-muted-foreground">
-            (Max {maxFiles} images)
+            (最多 {maxFiles} 張圖片)
           </p>
         </label>
       </div>
@@ -92,7 +92,7 @@ export const ImageUploadPlaceholder: React.FC<ImageUploadPlaceholderProps> = ({
             <div key={index} className="relative group aspect-square">
               <Image
                 src={typeof previewSrc === 'string' ? previewSrc : previewSrc.url}
-                alt={typeof previewSrc === 'string' ? `Preview ${index + 1}` : previewSrc.alt}
+                alt={typeof previewSrc === 'string' ? `預覽 ${index + 1}` : previewSrc.alt}
                 layout="fill"
                 objectFit="cover"
                 className="rounded-md"
@@ -111,4 +111,6 @@ export const ImageUploadPlaceholder: React.FC<ImageUploadPlaceholderProps> = ({
         </div>
       )}
     </div>
+  );
+};
   

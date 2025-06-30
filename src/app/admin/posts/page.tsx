@@ -291,28 +291,28 @@ const AdminManagePostsContent = () => {
         />
         <Select value={filterBy} onValueChange={setFilterBy}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter By" />
+            <SelectValue placeholder="篩選" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            <SelectItem value="createdAt">Time Posted</SelectItem>
-            <SelectItem value="pending_review">Pending Review</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="likes">Likes</SelectItem>
-            <SelectItem value="shares">Shares</SelectItem>
-            <SelectItem value="commentsCount">Comments</SelectItem>
-            <SelectItem value="isFeatured">Featured</SelectItem>
-            <SelectItem value="isHidden">Hidden</SelectItem>
+            <SelectItem value="none">無篩選</SelectItem>
+            <SelectItem value="createdAt">上傳時間</SelectItem>
+            <SelectItem value="pending_review">待審核</SelectItem>
+            <SelectItem value="approved">已審核</SelectItem>
+            <SelectItem value="rejected">已拒絕</SelectItem>
+            <SelectItem value="likes">按讚</SelectItem>
+            <SelectItem value="shares">分享</SelectItem>
+            <SelectItem value="commentsCount">評論</SelectItem>
+            <SelectItem value="isFeatured">精選</SelectItem>
+            <SelectItem value="isHidden">隱藏</SelectItem>
           </SelectContent>
         </Select>
         <Select value={sortOrder} onValueChange={setSortOrder}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort Order" />
+            <SelectValue placeholder="排序" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="desc">Descending</SelectItem>
-            <SelectItem value="asc">Ascending</SelectItem>
+            <SelectItem value="desc">降序</SelectItem>
+              <SelectItem value="asc">升序</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -368,7 +368,7 @@ const AdminManagePostsContent = () => {
                     />
                   </div>
                 )}
-                <p className="text-sm text-gray-600 mb-2">Likes: {post.likes}, Shares: {post.shares}, Comments: {post.commentsCount}</p>
+                <p className="text-sm text-gray-600 mb-2">按讚: {post.likes}, 分享: {post.shares}, 評論: {post.commentsCount}</p>
                 <p className="text-sm text-gray-600 mb-2">Featured: {post.isFeatured ? 'Yes' : 'No'}, Hidden: {post.isHidden ? 'Yes' : 'No'}</p>
                 <p className="text-sm text-gray-800 mt-2">
                   <span

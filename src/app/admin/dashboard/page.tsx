@@ -159,7 +159,7 @@ const AdminDashboardContent = () => {
             <Button asChild variant="outline" className="h-16">
               <Link href="/admin/comments" className="flex flex-col items-center">
                 <span className="text-sm">Manage</span>
-                <span className="font-semibold">Comments</span>
+                <span className="font-semibold">評論</span>
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-16">

@@ -8,7 +8,7 @@ import Footer from '@/components/Footer';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Story Post',
+  title: '希望夢想牆',
   description: 'Share your stories from the alley.',
 };
 

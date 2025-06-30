@@ -20,7 +20,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     await dbConnect();
 
     try {
-        const postId = params.id;
+        const { id: postId } = await params;
         const body = await request.json();
         const { userId, name, content, userIp } = body;
 
@@ -62,7 +62,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     await dbConnect();
 
     try {
-        const postId = params.id;
+        const { id: postId } = await params;
 
         if (!postId) {
             return NextResponse.json({ message: 'Post ID is required' }, { status: 400 });

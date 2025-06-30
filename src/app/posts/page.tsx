@@ -16,6 +16,7 @@ import { ShareButton } from '@/components/ui/share-button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import useDebounce from '@/hooks/useDebounce';
+import { generatePostLuckyNumber } from '@/hooks/useLuckyNumber';
 
 interface Post {
     _id: string;
@@ -45,7 +46,7 @@ interface AllPostsData {
 
 // Skeleton component for loading states
 const PostCardSkeleton = () => (
-    <Card className="w-full max-w-sm mx-auto shadow-lg border-none animate-pulse h-full flex flex-col">
+    <Card className="w-full max-w-sm mx-auto shadow-lg border-none animate-pulse h-full flex flex-col relative">
         <CardHeader>
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
@@ -136,7 +137,11 @@ const AllPostsContent = () => {
 
     const renderPostCard = (post: Post) => (
         <Link href={`/posts/${post._id}`} key={post._id} className="block w-full max-w-sm mx-auto h-full">
-            <Card className="shadow-lg border-none hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 h-full flex flex-col">
+            <Card className="shadow-lg border-none hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 h-full flex flex-col relative">
+                {/* Lucky Number */}
+                <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                    {generatePostLuckyNumber(post._id)}
+                </div>
                 <CardHeader>
                     <CardTitle className="text-lg">{post.title}</CardTitle>
                     <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
@@ -207,25 +212,25 @@ const AllPostsContent = () => {
 
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-3xl font-bold text-center mb-8">All Posts</h1>
+            {/* <h1 className="text-3xl font-bold text-center mb-8">All Posts</h1> */}
 
             <div className="flex flex-col md:flex-row gap-4 mb-6 md:mx-24">
                 <Input
-                    placeholder="Search by name or phone number..."
+                    placeholder="用姓名或電話尋找你的夢想卡"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="md:flex-1"
                 />
                 <Select value={filterBy} onValueChange={(value) => setFilterBy(value === 'none' ? '' : value)}>
                     <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filter By" />
+                        <SelectValue placeholder="篩選" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="createdAt">Time Posted</SelectItem>
-                        <SelectItem value="likes">Likes</SelectItem>
-                        <SelectItem value="shares">Shares</SelectItem>
-                        <SelectItem value="commentsCount">Comments</SelectItem>
+                        <SelectItem value="none">無篩選</SelectItem>
+                        <SelectItem value="createdAt">上傳時間</SelectItem>
+                        <SelectItem value="likes">按讚</SelectItem>
+                        <SelectItem value="shares">分享</SelectItem>
+                        <SelectItem value="commentsCount">評論</SelectItem>
                     </SelectContent>
                 </Select>
                 <Select value={sortOrder} onValueChange={setSortOrder}>
@@ -233,8 +238,8 @@ const AllPostsContent = () => {
                         <SelectValue placeholder="Sort Order" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="desc">Descending</SelectItem>
-                        <SelectItem value="asc">Ascending</SelectItem>
+                        <SelectItem value="desc">優先最多</SelectItem>
+                        <SelectItem value="asc">優先最少</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -274,7 +279,7 @@ export default function AllPostsPage() {
     return (
         <Suspense fallback={
             <div className="container mx-auto p-4">
-                <h1 className="text-3xl font-bold text-center mb-8">All Posts</h1>
+                {/* <h1 className="text-3xl font-bold text-center mb-8">All Posts</h1> */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6 md:mx-24">
                     <Skeleton className="h-10 md:flex-1" />
                     <Skeleton className="h-10 w-[180px]" />

@@ -183,10 +183,9 @@ export default function CreatePostPage() {
 
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-2xl font-bold mb-6 md:mx-20">Create New Post</h1>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:mx-20">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 md:mx-20">
                 <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+                    <label htmlFor="title" className="block text-sm font-medium text-gray-700">標題</label>
                     <Input id="title" {...form.register('title')} />
                     {form.formState.errors.title && (
                         <p className="text-red-500 text-sm">{form.formState.errors.title.message}</p>
@@ -194,7 +193,7 @@ export default function CreatePostPage() {
                 </div>
 
                 <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">內容</label>
                     <Textarea id="description" {...form.register('description')} />
                     {form.formState.errors.description && (
                         <p className="text-red-500 text-sm">{form.formState.errors.description.message}</p>
@@ -205,7 +204,7 @@ export default function CreatePostPage() {
                 {!user && (
                     <>
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">如何稱呼</label>
                             <Input id="name" {...form.register('name')} />
                             {form.formState.errors.name && (
                                 <p className="text-red-500 text-sm">{form.formState.errors.name.message}</p>
@@ -213,7 +212,7 @@ export default function CreatePostPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">Phone Number</label>
+                            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">電話</label>
                             <Input id="phoneNumber" type="tel" {...form.register('phoneNumber')} />
                             {form.formState.errors.phoneNumber && (
                                 <p className="text-red-500 text-sm">{form.formState.errors.phoneNumber.message}</p>
@@ -221,7 +220,7 @@ export default function CreatePostPage() {
                         </div>
 
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">信箱</label>
                             <Input id="email" type="email" {...form.register('email')} />
                             {form.formState.errors.email && (
                                 <p className="text-red-500 text-sm">{form.formState.errors.email.message}</p>
@@ -231,7 +230,7 @@ export default function CreatePostPage() {
                 )}
 
                 <div>
-                    <label htmlFor="images" className="block text-sm font-medium text-gray-700">Images</label>
+                    <label htmlFor="images" className="block text-sm font-medium text-gray-700">上傳 照片</label>
                     {/* Use Controller with the memoized render function defined inside the component */}
                     <Controller
                         name="images"
@@ -245,22 +244,22 @@ export default function CreatePostPage() {
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button type="button">Submit Post</Button>
+                        <Button type="button">上傳夢想卡</Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Terms and Conditions</DialogTitle>
+                            <DialogTitle>條款和條件</DialogTitle>
                             <DialogDescription asChild>
-                                <span>Please read and agree to our terms and conditions before submitting your post.</span>
+                                <span>請閱讀並同意我們的條款和條件，然後提交您的夢想卡。</span>
                             </DialogDescription>
                             <div className="mt-4 p-4 border rounded-md h-48 overflow-y-scroll">
-                                <p>1. By submitting this post, you agree to allow us to display your content publicly.</p>
-                                <p>2. You confirm that you have the rights to the images uploaded and that they do not infringe on any copyrights.</p>
-                                <p>3. Your submitted information (name, phone, email) will be used to create a member account for you. Your phone number will be used as a temporary password, which you should change immediately after logging in.</p>
-                                <p>4. We reserve the right to remove any content deemed inappropriate or violating our policies.</p>
-                                <p>5. Your data will be handled in accordance with our privacy policy.</p>
-                                <p>6. Participation in any lottery or rewards program is subject to specific rules and eligibility criteria.</p>
-                                <p>7. All content is subject to review by administrators.</p>
+                                <p>1. 提交夢想卡即表示您同意我們公開顯示您的內容。</p>
+                                <p>2. 您確認您上傳的圖片具有合法權利，並且不侵犯任何版權。</p>
+                                <p>3. 您提交的信息（姓名、電話、電子郵件）將用於為您創建一個會員帳戶。您的電話號碼將用作臨時密碼，您應在登錄後立即更改。</p>
+                                <p>4. 我們保留刪除任何被認為不適當或違反我們政策的內容的權利。</p>
+                                <p>5. 您的數據將按照我們的隱私政策處理。</p>
+                                <p>6. 參與任何抽獎或獎勵計劃受特定規則和資格標準的約束。</p>
+                                <p>7. 所有內容均受管理員的審查。</p>
                             </div>
                         </DialogHeader>
                         <div className="flex items-center space-x-2">
@@ -270,12 +269,12 @@ export default function CreatePostPage() {
                                 onCheckedChange={(checked) => setTermsAccepted(!!checked)}
                             />
                             <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                I agree to the terms and conditions
+                                我同意條款和條件
                             </label>
                         </div>
                         <DialogFooter>
                             <Button onClick={() => form.handleSubmit(onSubmit)()} disabled={!termsAccepted || isSubmitting}> {/* Disable button while submitting */}
-                                {isSubmitting ? 'Submitting...' : 'Confirm & Submit'} {/* Change button text/content */}
+                                {isSubmitting ? '提交中...' : '確認並提交'} {/* Change button text/content */}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
