@@ -30,21 +30,17 @@ export const useLuckyNumber = () => {
 
 // Generate a lucky number for each post based on post ID
 export const generatePostLuckyNumber = (postId: string): string => {
-  // Use post ID to generate a consistent lucky number for each post
-  let hash = 0;
-  for (let i = 0; i < postId.length; i++) {
-    const char = postId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  
-  // Ensure positive number and limit to 99999
-  const number = Math.abs(hash) % 100000;
-  
-  // Format based on value
-  if (number <= 9999) {
-    return number.toString().padStart(4, '0');
+  // Lấy 3 ký tự cuối cùng của postId, chuyển sang số, lấy mod 1000
+  let last3 = postId.slice(-3);
+  // Nếu không phải số, chuyển ký tự sang mã charCode rồi cộng lại
+  let num = 0;
+  if (/^\d{3}$/.test(last3)) {
+    num = parseInt(last3, 10);
   } else {
-    return number.toString();
+    for (let i = 0; i < last3.length; i++) {
+      num += last3.charCodeAt(i);
+    }
+    num = num % 1000;
   }
+  return num.toString().padStart(3, '0');
 }; 

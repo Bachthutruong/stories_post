@@ -107,11 +107,22 @@ const HomePageContent = () => {
         <Link href={`/posts/${post._id}`} key={post._id} className="block w-full max-w-sm h-full">
             <Card className="shadow-lg border-none hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 h-full flex flex-col relative">
                 {/* Lucky Number */}
-                <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                {/* <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold z-10">
                     {generatePostLuckyNumber(post._id)}
-                </div>
+                </div> */}
                 <CardHeader>
-                    <CardTitle className="text-lg">{post.title}</CardTitle>
+                    <div className="flex items-center justify-between bg-[#C6ECDE] px-3 py-2 rounded">
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg text-black m-0 p-0">{post.title}</CardTitle>
+                        </div>
+                        {/* Lấy 3 số cuối của postId */}
+                        <span className="ml-4 bg-blue-700 text-white px-2 py-1 rounded text-xs font-bold">
+                            {(() => {
+                                const match = post.postId.match(/(\d{3})$/);
+                                return match ? match[1] : post.postId.slice(-3).padStart(3, '0');
+                            })()}
+                        </span>
+                    </div>
                     <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">

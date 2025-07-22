@@ -12,11 +12,21 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Heart, MessageCircle, Flag, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { ShareButton } from "@/components/ui/share-button";
 import { generatePostLuckyNumber } from '@/hooks/useLuckyNumber';
-
+import Link from 'next/link';
+import { useEffect } from 'react';
+import { LikeButton } from '@/components/LikeButton';
+import { Skeleton } from '@/components/ui/skeleton';
+interface HomePageData {
+    featuredPosts: Post[];
+    topLikedPosts: Post[];
+    topSharedPosts: Post[];
+    topCommentedPosts: Post[];
+}
 interface Post {
     _id: string;
     postId: string;
@@ -68,7 +78,26 @@ const reportFormSchema = z.object({
 
 type CommentFormValues = z.infer<typeof commentFormSchema>;
 type ReportFormValues = z.infer<typeof reportFormSchema>;
-
+const PostCardSkeleton = () => (
+    <Card className="w-full max-w-sm shadow-lg border-none animate-pulse h-full flex flex-col relative">
+        <CardHeader>
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+        </CardHeader>
+        <CardContent className="flex-grow">
+            <Skeleton className="w-full h-48 mb-4 rounded-md" />
+            <Skeleton className="h-4 w-full mb-2" />
+            <Skeleton className="h-4 w-2/3" />
+        </CardContent>
+        <CardFooter className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-6 w-12" />
+            </div>
+        </CardFooter>
+    </Card>
+);
 export default function PostDetailPage() {
     const params = useParams();
     const postId = params.id as string;
@@ -90,7 +119,121 @@ export default function PostDetailPage() {
     const handleNextImage = () => {
         setCurrentImageIndex((prevIndex) => (prevIndex === (post?.images.length || 1) - 1 ? 0 : prevIndex + 1));
     };
+    const { data, isLoading, error } = useQuery<HomePageData, Error>({
+        queryKey: ['homepageData'],
+        queryFn: async () => {
+            const res = await fetch('/api/home', {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                },
+            });
+            if (!res.ok) {
+                throw new Error('Failed to fetch homepage data');
+            }
+            return res.json();
+        },
+        staleTime: 60 * 1000, // 1 minute
+        gcTime: 5 * 60 * 1000, // 5 minutes
+        refetchOnWindowFocus: false,
+    });
+    const handleShareClick = async (postId: string) => {
+        try {
+            const res = await fetch(`/api/posts/${postId}/share`, {
+                method: 'POST',
+            });
+            if (!res.ok) {
+                throw new Error('Failed to update share count');
+            }
+            const result = await res.json();
+            toast({
+                title: 'Shared!',
+                description: result.message,
+            });
+        } catch (error) {
+            console.error('Share error:', error);
+        }
+    };
+    const renderPostCard = (post: Post) => (
+        <Link href={`/posts/${post._id}`} key={post._id} className="block w-full max-w-sm h-full">
+            <Card className="shadow-lg border-none hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105 h-full flex flex-col relative">
+                {/* Lucky Number */}
+                {/* <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                    {generatePostLuckyNumber(post._id)}
+                </div> */}
+                <CardHeader>
+                    <div className="flex items-center justify-between bg-[#C6ECDE] px-3 py-2 rounded">
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg text-black m-0 p-0">{post.title}</CardTitle>
+                        </div>
+                        {/* Lấy 3 số cuối của postId */}
+                        <span className="ml-4 bg-blue-700 text-white px-2 py-1 rounded text-xs font-bold">
+                            {(() => {
+                                const match = post.postId.match(/(\d{3})$/);
+                                return match ? match[1] : post.postId.slice(-3).padStart(3, '0');
+                            })()}
+                        </span>
+                    </div>
+                    <CardDescription>By {post.userId?.name || 'Anonymous'} - {new Date(post.createdAt).toLocaleDateString()}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                    {post.images && post.images.length > 0 && (
+                        <div className="relative w-full h-48 mb-4 rounded-md overflow-hidden">
+                            <Image
+                                src={post.images[0].url}
+                                alt={post.description}
+                                fill
+                                style={{ objectFit: 'cover' }}
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                priority={false}
+                                loading="lazy"
+                            />
+                        </div>
+                    )}
+                    <p className="text-sm text-gray-600 line-clamp-3 overflow-hidden">
+                        {post.description.length > 100 ? `${post.description.substring(0, 100)}...` : post.description}
+                    </p>
+                </CardContent>
+                <CardFooter 
+                    className="flex justify-between items-center"
+                    onClick={(e) => e.preventDefault()} // Prevent card click when interacting with buttons
+                >
+                    <div className="flex items-center space-x-2">
+                        <LikeButton 
+                            postId={post._id} 
+                            initialLikes={post.likes} 
+                            isInitiallyLiked={false} // TODO: Check actual like status based on user
+                        />
+                        <div onClick={(e) => e.stopPropagation()} className="flex items-center space-x-1">
+                            <ShareButton
+                                url={`/posts/${post._id}`}
+                                title={post.title}
+                                description={post.description}
+                                variant="ghost"
+                                size="sm"
+                                showText={false}
+                                onShare={() => handleShareClick(post._id)}
+                            />
+                            <span className="text-sm text-muted-foreground">{post.shares}</span>
+                        </div>
+                        <div onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="sm" className="flex items-center space-x-1 text-muted-foreground">
+                                <MessageCircle className="w-4 h-4" />
+                                <span>{post.commentsCount}</span>
+                            </Button>
+                        </div>
+                    </div>
+                </CardFooter>
+            </Card>
+        </Link>
+    );
 
+    const renderSkeletonGrid = () => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center auto-rows-fr">
+            {Array.from({ length: 6 }).map((_, index) => (
+                <PostCardSkeleton key={index} />
+            ))}
+        </div>
+    );
     // Dummy authenticated user ID for testing purposes. Replace with actual auth context.
     const authenticatedUserId = '60d5ec49f0f9b3001c8e4d3a'; // Replace with a valid user ID from your DB if needed for testing auth
 
@@ -305,14 +448,21 @@ export default function PostDetailPage() {
                             <p className="text-sm text-gray-600">
                                 發佈者 <span className="font-medium">{post.userId?.name || '匿名'}</span> 於 {new Date(post.createdAt).toLocaleDateString()}
                                 <br />
-                                貼文編號：<span className="font-mono text-blue-600">{post.postId}</span>
+                                {/* 貼文編號：<span className="font-mono text-blue-600">{post.postId}</span> */}
                             </p>
                         </div>
                         <div className="flex items-center space-x-2 bg-gradient-to-r from-yellow-100 to-orange-100 px-4 py-2 rounded-lg border border-yellow-200">
                             <Star className="w-5 h-5 text-yellow-600" />
                             <div className="text-right">
                                 <div className="text-xs text-gray-600 font-medium">幸運號碼</div>
-                                <div className="text-lg font-bold text-yellow-700">{postLuckyNumber}</div>
+                                <div className="text-lg font-bold text-yellow-700">
+                                    
+                            <span >
+                            {(() => {
+                                const match = post.postId.match(/(\d{3})$/);
+                                return match ? match[1] : post.postId.slice(-3).padStart(3, '0');
+                            })()}
+                        </span></div>
                             </div>
                         </div>
                     </div>
@@ -377,7 +527,7 @@ export default function PostDetailPage() {
 
                         {/* Interaction buttons */}
                         <div className="border-t border-b border-gray-200 py-3 mb-6">
-                            <div className="flex items-center justify-around">
+                            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-around">
                                 {/* Like button */}
                                 <div className="flex items-center space-x-2">
                                     <Button 
@@ -578,6 +728,40 @@ export default function PostDetailPage() {
                     </div>
                 </div>
             </div>
+            <Tabs defaultValue="likes" className="w-full mt-8">
+                <TabsList className="grid max-w-md mx-auto grid-cols-3">
+                    <TabsTrigger value="likes">按讚最多</TabsTrigger>
+                    <TabsTrigger value="shares">分享最多</TabsTrigger>
+                    <TabsTrigger value="comments">留言最多</TabsTrigger>
+                </TabsList>
+                <TabsContent value="likes">
+                        {isLoading ? (
+                            renderSkeletonGrid()
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 justify-items-center auto-rows-fr">
+                                {data?.topLikedPosts?.map(renderPostCard)}
+                            </div>
+                        )}
+                    </TabsContent>
+                    <TabsContent value="shares">
+                        {isLoading ? (
+                            renderSkeletonGrid()
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 justify-items-center auto-rows-fr">
+                                {data?.topSharedPosts?.map(renderPostCard)}
+                            </div>
+                        )}
+                    </TabsContent>
+                    <TabsContent value="comments">
+                        {isLoading ? (
+                            renderSkeletonGrid()
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 justify-items-center auto-rows-fr">
+                                {data?.topCommentedPosts?.map(renderPostCard)}
+                            </div>
+                        )}
+                    </TabsContent>
+            </Tabs>
         </div>
     );
 } 
